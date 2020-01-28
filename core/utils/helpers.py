@@ -1,5 +1,6 @@
-from django.core.exceptions import ValidationError
 from django.db.utils import IntegrityError
+from django.db import models
+from rest_framework.exceptions import ValidationError
 
 
 def get_errored_integrity_field(exc):
@@ -22,6 +23,26 @@ def get_errored_integrity_field(exc):
     exc_message = exc.args[0][key_index:]
 
     # the field is between the first pair of brackets after our message.
-    field = exc_message[exc_message.find("(")+1:exc_message.find(")")]
+    field = exc_message[exc_message.find("(") + 1 : exc_message.find(")")]
 
     return field if field else None
+
+
+def soft_delete_owned_object(model, user, pk):
+    """
+    soft deletes and object if the user owns it
+    params:
+        model - django model
+        user - user object
+        pk - object primary key
+    returns: None
+    Raises:
+        Validation error if primary key is not an integer
+    """
+    try:
+        sms_request = model.active_objects.get(pk=pk, owner=user)
+        sms_request.soft_delete(commit=True)
+    except models.ObjectDoesNotExist:
+        pass
+    except (ValueError, TypeError):
+        raise ValidationError({"detail": f"Only integers allowed. '{pk}' is invalid."})

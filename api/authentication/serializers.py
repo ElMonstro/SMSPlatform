@@ -1,12 +1,11 @@
 from rest_framework import serializers
 from django.db.utils import IntegrityError
-from django.contrib.auth.password_validation import  validate_password
+from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 
 from core.utils.validators import validate_phone_number
 from core.utils.helpers import get_errored_integrity_field
 from .models import User
-
 
 
 class RegistrationSerializer(serializers.Serializer):
@@ -15,30 +14,25 @@ class RegistrationSerializer(serializers.Serializer):
     """
 
     email = serializers.EmailField()
-    phone = serializers.CharField(required=False, validators=[
-                                      validate_phone_number])
+    phone = serializers.CharField(required=False, validators=[validate_phone_number])
     full_name = serializers.CharField(max_length=100)
     role = serializers.CharField()
-    password = serializers.CharField(
-        max_length=124, min_length=8, write_only=True)
+    password = serializers.CharField(max_length=124, min_length=8, write_only=True)
     confirmed_password = serializers.CharField(
-        max_length=124, min_length=8, write_only=True)
+        max_length=124, min_length=8, write_only=True
+    )
 
     def validate(self, data):
         """validate data before it gets saved"""
         confirmed_password = data.get("confirmed_password")
 
         try:
-            validate_password(data['password'])
+            validate_password(data["password"])
         except ValidationError as e:
-            raise serializers.ValidationError({
-                "password": e.messages
-            }) from e
+            raise serializers.ValidationError({"password": e.messages}) from e
 
-        if not self.do_passwords_match(data['password'], confirmed_password):
-            raise serializers.ValidationError({
-                "password": "passwords don't match"
-            })
+        if not self.do_passwords_match(data["password"], confirmed_password):
+            raise serializers.ValidationError({"password": "passwords don't match"})
 
         return data
 
@@ -52,7 +46,10 @@ class RegistrationSerializer(serializers.Serializer):
             errored_field = get_errored_integrity_field(exc)
             if errored_field:
                 raise serializers.ValidationError(
-                    {errored_field: f"A user is already registered with this {errored_field}."}) from exc
+                    {
+                        errored_field: f"A user is already registered with this {errored_field}."
+                    }
+                ) from exc
         except ValidationError as exc:
             raise serializers.ValidationError(exc.args[0]) from exc
 

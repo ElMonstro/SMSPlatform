@@ -1,20 +1,36 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model, password_validation
-from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, PermissionsMixin
+from django.contrib.auth.models import (
+    BaseUserManager,
+    AbstractBaseUser,
+    PermissionsMixin,
+)
 
 from core.models import AbstractBaseModel, ActiveObjectsQuerySet
 from core.utils.validators import validate_phone_number, validate_required_arguments
+
 
 class UserManager(BaseUserManager):
     """
     Custom manager to handle the User model methods.
     """
 
-    def create_user(self, full_name=None, email=None, password=None, phone=None, role=None, **kwargs):
+    def create_user(
+        self, full_name=None, email=None, password=None, phone=None, role=None, **kwargs
+    ):
         REQUIRED_ARGS = ("full_name", "email", "password", "phone", "role")
 
-        validate_required_arguments({"full_name": full_name, "email": email, "password": password, "phone": phone, "role": role}, REQUIRED_ARGS)
+        validate_required_arguments(
+            {
+                "full_name": full_name,
+                "email": email,
+                "password": password,
+                "phone": phone,
+                "role": role,
+            },
+            REQUIRED_ARGS,
+        )
 
         # Create role first. If a role already exists, we don't create it again.
         role = Role.active_objects.get_or_create(title=role)[0]
@@ -43,14 +59,32 @@ class UserManager(BaseUserManager):
         return user
 
     def create_superuser(
-            self, full_name=None, email=None, password=None, phone=None, role="superuser", **kwargs):
-        '''
+        self,
+        full_name=None,
+        email=None,
+        password=None,
+        phone=None,
+        role="superuser",
+        **kwargs
+    ):
+        """
         This is the method that creates superusers in the database.
-        '''
+        """
 
-        admin = self.create_user(full_name=full_name, email=email, password=password, role=role, phone=phone, is_superuser=True, is_staff=True, is_verified=True, is_active=True)
+        admin = self.create_user(
+            full_name=full_name,
+            email=email,
+            password=password,
+            role=role,
+            phone=phone,
+            is_superuser=True,
+            is_staff=True,
+            is_verified=True,
+            is_active=True,
+        )
 
         return admin
+
 
 class User(AbstractBaseModel, AbstractBaseUser):
     """
@@ -62,11 +96,15 @@ class User(AbstractBaseModel, AbstractBaseUser):
     phone = models.CharField(unique=True, max_length=50)
     is_verified = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
+    is_superuser = models.BooleanField(default=False)
+    is_staff = models.BooleanField(default=False)
 
     # TODO: should this be nullable and blank?
-    role = models.ForeignKey("Role", on_delete=models.CASCADE, related_name="users", to_field="title")
-    REQUIRED_FIELDS = ['full_name', "phone"]
-    USERNAME_FIELD = 'email'
+    role = models.ForeignKey(
+        "Role", on_delete=models.CASCADE, related_name="users", to_field="title"
+    )
+    REQUIRED_FIELDS = ["full_name", "phone"]
+    USERNAME_FIELD = "email"
 
     objects = UserManager()
 
@@ -95,7 +133,9 @@ class User(AbstractBaseModel, AbstractBaseUser):
         phone = self.phone
 
         if not validate_phone_number(phone):
-            raise ValidationError({"phone": "Please enter a valid kenyan phone number."})
+            raise ValidationError(
+                {"phone": "Please enter a valid international phone number."}
+            )
         return super().clean()
 
 
@@ -104,7 +144,11 @@ class Role(AbstractBaseModel, models.Model):
     Contains the Role that each user must have.
     """
 
-    title = models.CharField(max_length=100, help_text="User's role within employer's organization.", unique=True)
+    title = models.CharField(
+        max_length=100,
+        help_text="User's role within employer's organization.",
+        unique=True,
+    )
 
     active_objects = ActiveObjectsQuerySet.as_manager()
 
