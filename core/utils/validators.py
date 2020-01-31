@@ -4,11 +4,14 @@ from django.core.exceptions import ValidationError
 
 def validate_passed_file_extension(extension):
     """returns a validator for the passed extension"""
+
     def validator(value):
-        ext = value.name.split('.')[-1] 
+        ext = value.name.split(".")[-1]
         if not ext.lower() == extension:
-            raise ValidationError(f'This is not a {extension} file.')
+            raise ValidationError(f"This is not a {extension} file.")
+
     return validator
+
 
 def validate_phone_number(phone):
     """
@@ -22,7 +25,7 @@ def validate_phone_number(phone):
     return True if number is valid. False otherwise.
     """
 
-    regex_pattern = r"^[0-9]{10}$"
+    regex_pattern = r"^\+\d{1,3}\d{3,}$"
 
     match = re.search(regex_pattern, phone)
 
@@ -52,8 +55,19 @@ def validate_required_arguments(kwargs, required_args):
     """
 
     for arg in required_args:
-        if arg not in kwargs.keys(): # arg must be present
+        if arg not in kwargs.keys():  # arg must be present
             raise ValidationError({arg: "This field is required."})
-        elif not kwargs.get(arg): # arg must be truthy
+        elif not kwargs.get(arg):  # arg must be truthy
             raise ValidationError({arg: "This field cannot be empty."})
     return kwargs
+
+
+def validate_phone_list(phone_list):
+    """Loops through and validates phone numbers"""
+    if len(phone_list) > 5:
+        raise ValidationError(
+            "Recepeints more than five, use bulk SMS or group features instead"
+        )
+    for index, number in enumerate(phone_list):
+        if not validate_phone_number(number):
+            raise ValidationError(f"Invalid phone number at index {index}")

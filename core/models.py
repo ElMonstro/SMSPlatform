@@ -30,9 +30,9 @@ class AbstractBaseModel(models.Model):
         if commit:
             self.save()
 
-    
     class Meta:
         abstract = True
+
 
 class ActiveObjectsQuerySet(models.QuerySet):
     """
@@ -53,10 +53,9 @@ class ActiveObjectsQuerySet(models.QuerySet):
 
         return self.filter(is_deleted=False)
 
-    def all_objects(self):
+    def all(self):
         """
         Return all objects that aren't soft deleted.
         """
 
         return self._active()
-
