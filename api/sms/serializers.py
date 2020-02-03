@@ -4,6 +4,7 @@ from .models import SMSGroup, SMSRequest, SMSTemplate
 from core.utils.sms_helpers import send_sms
 from core.utils.validators import validate_phone_list
 from core.utils.helpers import soft_delete_owned_object
+from core.utils.validators import validate_primary_keys
 
 
 class SMSRequestSerializer(serializers.ModelSerializer):
@@ -22,7 +23,8 @@ class SMSRequestSerializer(serializers.ModelSerializer):
         return super().is_valid(raise_exception)
 
     def create(self, validated_data):
-        send_sms(validated_data["message"], validated_data["recepients"])
+        receipients = validated_data["recepients"]
+        send_sms(validated_data["message"], receipients)
         return super().create(validated_data)
 
     class Meta:
@@ -53,9 +55,12 @@ class DeleteSMSRequestsSerializer(serializers.Serializer):
         child=serializers.IntegerField(required=True)
     )
 
+
+
     def delete(self):
         sms_requests = self.data.get("sms_requests")
         user = self.context["request"].user
         if sms_requests:
+            validate_primary_keys(sms_requests)
             for pk in sms_requests:
                 soft_delete_owned_object(SMSRequest, user, pk)
