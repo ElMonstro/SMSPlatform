@@ -8,7 +8,7 @@ from core.views import CustomGenericAPIView
 
 
 class SMSRequestView(generics.ListCreateAPIView, CustomGenericAPIView):
-    """Send sms view """
+    """create, list and delete sms requests """
 
     serializer_class = serializers.SMSRequestSerializer
     queryset = models.SMSRequest.active_objects.all()
