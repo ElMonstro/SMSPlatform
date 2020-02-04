@@ -9,3 +9,5 @@ coverage==5.0.3
 faker==4.0.0
 factory-boy==2.12.0
 africastalking==1.1.9
+drf-yasg==1.17.0
+gunicorn==20.0.4
