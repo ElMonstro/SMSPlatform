@@ -1,5 +1,5 @@
 import re
-from django.core.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError
 
 
 def validate_passed_file_extension(extension):
@@ -71,3 +71,11 @@ def validate_phone_list(phone_list):
     for index, number in enumerate(phone_list):
         if not validate_phone_number(number):
             raise ValidationError(f"Invalid phone number at index {index}")
+
+def validate_primary_keys(keys):
+    invalid_keys = []
+    for key in keys:
+        if not isinstance(key, int):
+            invalid_keys.append(key)
+    if invalid_keys:
+        raise ValidationError({"detail": f"Only integers allowed. {str(invalid_keys)[1:-1]} is/are invalid."})
