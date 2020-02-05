@@ -11,3 +11,4 @@ factory-boy==2.12.0
 africastalking==1.1.9
 drf-yasg==1.17.0
 gunicorn==20.0.4
+django-cors-headers==3.2.1

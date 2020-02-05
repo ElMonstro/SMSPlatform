@@ -43,14 +43,17 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "drf_yasg",
+    "corsheaders"
     "core",
     "api.authentication",
-    "api.sms",
-    "drf_yasg"
+    "api.sms"
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -162,5 +165,7 @@ SWAGGER_SETTINGS = {
       }
    }
 }
+
+CORS_ORIGIN_ALLOW_ALL = True
 
 django_heroku.settings(locals())
