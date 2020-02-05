@@ -17,8 +17,7 @@ class BaseTest(APITestCase):
             "full_name": self.user.full_name,
             "email": fake.email(),
             "password": self.user.password,
-            "confirmed_password": self.user.password,
-            "role": self.user.role.title,
+            "confirmed_password": self.user.password,       
             "phone": "+254" + fake.msisdn()[:9],
         }
 
@@ -27,7 +26,6 @@ class BaseTest(APITestCase):
             "email": self.user.email + "s",
             "password": self.user.password,
             "confirmed_password": self.user.password + "v",
-            "role": self.user.role.title,
             "phone": "+254" + fake.msisdn()[:9],
         }
         self.invalid_email_data = {
@@ -35,7 +33,6 @@ class BaseTest(APITestCase):
             "email": self.user.email.replace("@", ""),
             "password": self.user.password,
             "confirmed_password": self.user.password,
-            "role": self.user.role.title,
             "phone": "+254" + fake.msisdn()[:9],
         }
 
@@ -52,7 +49,6 @@ class BaseTest(APITestCase):
             "email": self.user.email + "m",
             "password": "123456",
             "confirmed_password": self.user.password,
-            "role": self.user.role.title,
             "phone": "+254" + fake.msisdn()[:9],
         }
         self.number_in_first_name_data = {
@@ -60,7 +56,6 @@ class BaseTest(APITestCase):
             "email": self.user.email + "s",
             "password": self.user.password,
             "confirmed_password": self.user.password,
-            "role": self.user.role.title,
             "phone": "+254" + fake.msisdn()[:9],
         }
 
@@ -69,7 +64,7 @@ class BaseTest(APITestCase):
             "email": self.user.email + "s",
             "password": self.user.password,
             "confirmed_password": self.user.password,
-            "role": self.user.role.title,
+            
             "phone": "+254" + fake.msisdn()[:9],
         }
 
@@ -78,7 +73,6 @@ class BaseTest(APITestCase):
             "full_name": self.user.full_name,
             "email": self.user.email + "m",
             "password": self.user.password,
-            "confirmed_password": self.user.password,
-            "role": self.user.role.title,
+            "confirmed_password": self.user.password, 
             "phone": "4352",
         }

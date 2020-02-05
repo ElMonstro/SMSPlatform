@@ -23,14 +23,12 @@ class SMSRequest(AbstractBaseModel):
     active_objects = ActiveObjectsQuerySet.as_manager()
 
 
-class SMSGroup(AbstractBaseModel):
+class SMSGroup(models.Model):
     owner = models.ForeignKey(
         "authentication.User", related_name="groups", on_delete=models.CASCADE
     )
     name = models.CharField(max_length=60)
     description = models.CharField(max_length=200, null=True)
-
-    active_objects = ActiveObjectsQuerySet.as_manager()
 
 
 class SMSTemplate(models.Model):

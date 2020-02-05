@@ -16,7 +16,6 @@ class RegistrationSerializer(serializers.Serializer):
     email = serializers.EmailField()
     phone = serializers.CharField(required=False, validators=[validate_phone_number])
     full_name = serializers.CharField(max_length=100)
-    role = serializers.CharField()
     password = serializers.CharField(max_length=124, min_length=8, write_only=True)
     confirmed_password = serializers.CharField(
         max_length=124, min_length=8, write_only=True

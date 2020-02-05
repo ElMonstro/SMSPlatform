@@ -23,7 +23,8 @@ class SMSRequestSerializer(serializers.ModelSerializer):
         return super().is_valid(raise_exception)
 
     def create(self, validated_data):
-        receipients = validated_data["recepients"]
+        receipients = validated_data.get("recepients")
+        list(set(receipients))
         send_sms(validated_data["message"], receipients)
         return super().create(validated_data)
 
@@ -37,16 +38,17 @@ class SMSGroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = SMSGroup
         fields = "__all__"
+        extra_kwargs = {'owner': {'read_only':True}}
 
 
 class SMSTemplateSerializer(serializers.ModelSerializer):
     def is_valid(self, raise_exception):
-        self.initial_data["owner"] = self.context["request"].user.pk
         return super().is_valid(raise_exception)
 
     class Meta:
         model = SMSTemplate
         fields = "__all__"
+        extra_kwargs = {'owner': {'read_only':True}}
 
 
 class DeleteSMSRequestsSerializer(serializers.Serializer):
@@ -54,8 +56,6 @@ class DeleteSMSRequestsSerializer(serializers.Serializer):
     sms_requests = serializers.ListSerializer(
         child=serializers.IntegerField(required=True)
     )
-
-
 
     def delete(self):
         sms_requests = self.data.get("sms_requests")
