@@ -6,5 +6,7 @@ app_name = "sms"
 urlpatterns = [
     path("", views.SMSRequestView.as_view(), name="sms"),
     path("template/", views.SMSTemplateView.as_view(), name="sms_template"),
-    path("template/<int:pk>/", views.SingleSMSTemplateView.as_view()),
+    path("template/<int:pk>/", views.SingleSMSTemplateView.as_view(), name="single_sms_template"),
+    path("groups/", views.GroupView.as_view(), name="group"),
+    path("groups/<int:pk>/", views.SingleGroupView.as_view(), name="single_group"),
 ]

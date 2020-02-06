@@ -17,9 +17,9 @@ class UserManager(BaseUserManager):
     """
 
     def create_user(
-        self, full_name=None, email=None, password=None, phone=None, role=None, **kwargs
+        self, full_name=None, email=None, password=None, phone=None, **kwargs
     ):
-        REQUIRED_ARGS = ("full_name", "email", "password", "phone", "role")
+        REQUIRED_ARGS = ("full_name", "email", "password", "phone")
 
         validate_required_arguments(
             {
@@ -27,13 +27,9 @@ class UserManager(BaseUserManager):
                 "email": email,
                 "password": password,
                 "phone": phone,
-                "role": role,
             },
             REQUIRED_ARGS,
         )
-
-        # Create role first. If a role already exists, we don't create it again.
-        role = Role.active_objects.get_or_create(title=role)[0]
 
         # employer = Employer.objects.get_or_create(employer_code=employer)[0]
 
@@ -48,7 +44,6 @@ class UserManager(BaseUserManager):
             full_name=full_name,
             email=self.normalize_email(email),
             phone=phone,
-            role=role,
             **kwargs
         )
 
@@ -64,7 +59,6 @@ class UserManager(BaseUserManager):
         email=None,
         password=None,
         phone=None,
-        role="superuser",
         **kwargs
     ):
         """
@@ -75,7 +69,6 @@ class UserManager(BaseUserManager):
             full_name=full_name,
             email=email,
             password=password,
-            role=role,
             phone=phone,
             is_superuser=True,
             is_staff=True,
@@ -99,10 +92,6 @@ class User(AbstractBaseModel, AbstractBaseUser):
     is_superuser = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
 
-    # TODO: should this be nullable and blank?
-    role = models.ForeignKey(
-        "Role", on_delete=models.CASCADE, related_name="users", to_field="title"
-    )
     REQUIRED_FIELDS = ["full_name", "phone"]
     USERNAME_FIELD = "email"
 
@@ -137,20 +126,3 @@ class User(AbstractBaseModel, AbstractBaseUser):
                 {"phone": "Please enter a valid international phone number."}
             )
         return super().clean()
-
-
-class Role(AbstractBaseModel, models.Model):
-    """
-    Contains the Role that each user must have.
-    """
-
-    title = models.CharField(
-        max_length=100,
-        help_text="User's role within employer's organization.",
-        unique=True,
-    )
-
-    active_objects = ActiveObjectsQuerySet.as_manager()
-
-    def __str__(self):
-        return self.title

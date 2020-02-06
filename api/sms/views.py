@@ -31,10 +31,27 @@ class SMSTemplateView(generics.ListCreateAPIView, CustomGenericAPIView):
     serializer_class = serializers.SMSTemplateSerializer
     queryset = models.SMSTemplate.objects.all()
 
-
-class SingleSMSTemplateView(generics.RetrieveUpdateDestroyAPIView):
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
+class SingleSMSTemplateView(generics.RetrieveUpdateDestroyAPIView, CustomGenericAPIView):
     """Single SMS actions"""
 
     permission_classes = [IsOwner]
     serializer_class = serializers.SMSTemplateSerializer
     queryset = models.SMSTemplate.objects.all()
+
+class GroupView(generics.ListCreateAPIView, CustomGenericAPIView):
+    """Create or list groups"""
+    serializer_class = serializers.SMSGroupSerializer
+    queryset = models.SMSGroup.objects.all()
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
+
+
+class SingleGroupView(generics.RetrieveUpdateDestroyAPIView, CustomGenericAPIView):
+    """Get, delete and update group actions"""
+
+    permission_classes = [IsOwner]
+    serializer_class = serializers.SMSGroupSerializer
+    queryset = models.SMSGroup.objects.all()
