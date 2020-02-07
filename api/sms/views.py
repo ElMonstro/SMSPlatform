@@ -50,8 +50,42 @@ class GroupView(generics.ListCreateAPIView, CustomGenericAPIView):
 
 
 class SingleGroupView(generics.RetrieveUpdateDestroyAPIView, CustomGenericAPIView):
-    """Get, delete and update group actions"""
+    """
+    Get, delete and update a group, Patch update is used to add members while PUT 
+    update is used to remove members
+    """
 
     permission_classes = [IsOwner]
-    serializer_class = serializers.SMSGroupSerializer
+    serializer_class = serializers.SingleSMSGroupSerializer
     queryset = models.SMSGroup.objects.all()
+
+    def perform_update(self, serializer):
+        """
+        Change members m2m field update behaviour 
+        to add or remove existing members instead of replacing
+        """
+        new_members = serializer.validated_data.pop("members", None)
+        group_member_action = {
+            "PATCH": serializer.instance.members.add,
+            "PUT": serializer.instance.members.remove
+        }
+        if new_members:
+            for new_member in new_members:
+                group_member_action[self.request.method](new_member)
+            serializer.instance.save()
+        serializer.save()
+
+
+class GroupMembersView(generics.CreateAPIView, CustomGenericAPIView):
+    """Create or list members"""
+    serializer_class = serializers.GroupMemberSerializer
+    queryset = models.GroupMember.active_objects.all()
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
+
+
+class SingleGroupMembersView(generics.RetrieveUpdateDestroyAPIView):
+    """Update, delete and get actions on members"""
+    serializer_class = serializers.GroupMemberSerializer
+    queryset = models.GroupMember.active_objects.all()
