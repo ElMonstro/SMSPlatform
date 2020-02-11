@@ -15,5 +15,3 @@ class BaseTest(APITestCase):
         self.request_factory = APIRequestFactory()
         self.user = UserFactory.create()
         self.create_list_sms_url = "/api/v1/sms/"
-        
-

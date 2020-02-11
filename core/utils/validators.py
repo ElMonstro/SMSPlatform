@@ -79,3 +79,8 @@ def validate_primary_keys(keys):
             invalid_keys.append(key)
     if invalid_keys:
         raise ValidationError({"detail": f"Only integers allowed. {str(invalid_keys)[1:-1]} is/are invalid."})
+
+def validate_model_reference_is_own(user, model, instance):
+    """Validate the user owns the group reference"""
+    if not instance.owner == user:
+        raise ValidationError({"detail": "The group referenced is not owned by the current user"})

@@ -9,4 +9,6 @@ urlpatterns = [
     path("template/<int:pk>/", views.SingleSMSTemplateView.as_view(), name="single_sms_template"),
     path("groups/", views.GroupView.as_view(), name="group"),
     path("groups/<int:pk>/", views.SingleGroupView.as_view(), name="single_group"),
+    path("groups/members/", views.GroupMembersView.as_view(), name="group_members"),
+    path("group-members/<int:pk>/", views.SingleGroupMembersView.as_view(), name="single_group_member"),
 ]

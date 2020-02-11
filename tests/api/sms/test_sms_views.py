@@ -25,6 +25,14 @@ class SMSRequestViewsTest(BaseTest):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data['detail'], "A receipient group id or a recepient phone number list must be provided")
 
+    def test_create_sms_request_fails_with_both_group_or_recepients_fails(self):
+        """Test that sms creation with bothc group or receipient will fail"""
+        request = self.request_factory.post(self.create_list_sms_url, dummy_data.data_with_both_recepient_or_group)
+        force_authenticate(request, self.user)
+        response = views.SMSRequestView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['detail'], "Either send group id or receipient list not both")
+
     @patch("api.sms.serializers.send_sms")
     def test_get_sms_requests_succeeds(self, _):
         """Test that get created sms succeed"""
