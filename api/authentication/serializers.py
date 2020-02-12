@@ -1,11 +1,16 @@
-from rest_framework import serializers
+from datetime import datetime
+
 from django.db.utils import IntegrityError
 from django.contrib.auth.password_validation import validate_password
-from django.core.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError
+from django.conf import settings
+
+from rest_framework import serializers
+from jwt import encode, decode, DecodeError
 
 from core.utils.validators import validate_phone_number
 from core.utils.helpers import get_errored_integrity_field
-from .models import User
+from .models import User, AddStaffModel, Company
 
 
 class RegistrationSerializer(serializers.Serializer):
@@ -16,6 +21,7 @@ class RegistrationSerializer(serializers.Serializer):
     email = serializers.EmailField()
     phone = serializers.CharField(required=False, validators=[validate_phone_number])
     full_name = serializers.CharField(max_length=100)
+    company = serializers.CharField(max_length=50)
     password = serializers.CharField(max_length=124, min_length=8, write_only=True)
     confirmed_password = serializers.CharField(
         max_length=124, min_length=8, write_only=True
@@ -37,9 +43,9 @@ class RegistrationSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         validated_data.pop("confirmed_password")
-
+        validated_data.update({"is_admin": True})
         try:
-            user = User.objects.create_user(**validated_data)
+            user = self.Meta.create_user(**validated_data)
             return user
         except IntegrityError as exc:
             errored_field = get_errored_integrity_field(exc)
@@ -56,3 +62,51 @@ class RegistrationSerializer(serializers.Serializer):
     def do_passwords_match(password1, password2):
 
         return password1 == password2
+
+    class Meta:
+        create_user = User.objects.create_user
+
+class AddStaffSerializer(serializers.ModelSerializer):
+    
+    def save(self):
+        company_name = self.context["request"].user.company.name
+        payload = { 
+            "email": self.validated_data["email"],
+            "company": company_name,
+            "date": datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
+             }
+        token = encode(payload, settings.SECRET_KEY)
+        self.validated_data["token"] = token
+        return super().save()
+    class Meta:
+        model = AddStaffModel
+        fields = ["email"]
+        extra_kwargs = {'token': {'read_only':True}}
+
+
+class CompanySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        fields = "__all__"
+        model = Company
+
+
+class StaffRegistrationSerializer(RegistrationSerializer):
+
+    token = serializers.CharField(required=True, write_only=True)
+    company = CompanySerializer(read_only=True)
+    email = serializers.ReadOnlyField()
+
+    def is_valid(self, **kwargs):
+        super().is_valid(**kwargs)
+        token = self.validated_data["token"]
+        try:
+            payload = decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        except DecodeError:
+            raise ValidationError({"detail": "Invalid token"})
+        payload.pop("date")
+        self.validated_data.pop("token")
+        self.validated_data.update(payload)
+
+    class Meta:
+        create_user = User.objects.create_staff

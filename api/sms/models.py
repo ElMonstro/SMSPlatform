@@ -5,8 +5,8 @@ from core.utils.validators import validate_phone_list, validate_phone_number
 
 
 class SMSRequest(AbstractBaseModel):
-    owner = models.ForeignKey(
-        "authentication.User", related_name="sms_requests", on_delete=models.CASCADE
+    company = models.ForeignKey(
+        "authentication.Company", on_delete=models.CASCADE,related_name="sms_requests"
     )
     message = models.CharField(max_length=160)
     group = models.ForeignKey(
@@ -24,27 +24,33 @@ class SMSRequest(AbstractBaseModel):
 
 
 class SMSGroup(models.Model):
-    owner = models.ForeignKey(
-        "authentication.User", related_name="groups", on_delete=models.CASCADE
+    company = models.ForeignKey(
+        "authentication.Company", on_delete=models.CASCADE,related_name="company_groups"
     )
-    name = models.CharField(max_length=60, unique=True)
+    name = models.CharField(max_length=60)
     description = models.CharField(max_length=200, null=True)
     members = models.ManyToManyField("GroupMember", related_name="groups", blank=True)
 
+    class Meta:
+        unique_together = ('company', 'name',)
+
 
 class SMSTemplate(models.Model):
-    owner = models.ForeignKey(
-        "authentication.User", related_name="templates", on_delete=models.CASCADE
+    company = models.ForeignKey(
+        "authentication.Company", on_delete=models.CASCADE,related_name="company_templates"
     )
     name = models.CharField(max_length=20, null=True)
     message = models.CharField(max_length=160)
 
 class GroupMember(AbstractBaseModel):
-    owner = models.ForeignKey(
-        "authentication.User", related_name="group_members", on_delete=models.CASCADE
+    company = models.ForeignKey(
+        "authentication.Company", on_delete=models.CASCADE,related_name="company_group_members"
     )
     first_name = models.CharField(max_length=30, null=True)
     last_name = models.CharField(max_length=30, null=True)
-    phone = models.CharField(max_length=30, validators=[validate_phone_number], unique=True)
+    phone = models.CharField(max_length=30, validators=[validate_phone_number])
 
     active_objects = ActiveObjectsQuerySet.as_manager()
+
+    class Meta:
+        unique_together = ('company', 'phone',)
