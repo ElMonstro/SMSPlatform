@@ -1,7 +1,10 @@
-from rest_framework.test import APIClient, APITestCase
+from datetime import datetime
 from django.urls import reverse
+from django.conf import settings
+from rest_framework.test import APIClient, APITestCase, APIRequestFactory
 from tests.factories.auth_factories import UserFactory
 from faker import Faker
+from jwt import encode
 
 fake = Faker()
 
@@ -12,6 +15,7 @@ class BaseTest(APITestCase):
     def setUp(self):
         self.client = APIClient()
         self.registration_url = "/api/v1/auth/register/"
+        self.request_factory = APIRequestFactory()
         self.user = UserFactory.create()
         self.new_user = {
             "full_name": self.user.full_name,
@@ -19,6 +23,22 @@ class BaseTest(APITestCase):
             "password": self.user.password,
             "confirmed_password": self.user.password,       
             "phone": "+254" + fake.msisdn()[:9],
+            "company": "Company"
+        }
+
+        payload = { 
+            "email": fake.email(),
+            "company": self.new_user["company"],
+            "date": datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
+             }
+        token = encode(payload, settings.SECRET_KEY)
+
+        self.staff = {
+            "full_name": self.user.full_name,
+            "password": self.user.password,
+            "confirmed_password": self.user.password,       
+            "phone": "+254" + fake.msisdn()[:9],
+            "token": token
         }
 
         self.umatching_passwords_data = {
@@ -27,6 +47,7 @@ class BaseTest(APITestCase):
             "password": self.user.password,
             "confirmed_password": self.user.password + "v",
             "phone": "+254" + fake.msisdn()[:9],
+            "company": "Company"
         }
         self.invalid_email_data = {
             "full_name": self.user.full_name,
@@ -34,9 +55,10 @@ class BaseTest(APITestCase):
             "password": self.user.password,
             "confirmed_password": self.user.password,
             "phone": "+254" + fake.msisdn()[:9],
+            "company": "Company"
         }
 
-        self.no_role_field_data = {
+        self.no_company_field_data = {
             "full_name": self.user.full_name,
             "email": self.user.email + "p",
             "password": self.user.password,
@@ -64,7 +86,7 @@ class BaseTest(APITestCase):
             "email": self.user.email + "s",
             "password": self.user.password,
             "confirmed_password": self.user.password,
-            
+            "company": "Company",
             "phone": "+254" + fake.msisdn()[:9],
         }
 
@@ -75,4 +97,5 @@ class BaseTest(APITestCase):
             "password": self.user.password,
             "confirmed_password": self.user.password, 
             "phone": "4352",
+            "company": "Company"
         }

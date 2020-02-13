@@ -1,6 +1,9 @@
 from rest_framework import status
+from rest_framework.test import force_authenticate
+from unittest.mock import patch
 
 from .base_tests import BaseTest
+from api.authentication import views
 
 
 class UserRegistrationTest(BaseTest):
@@ -51,3 +54,22 @@ class UserRegistrationTest(BaseTest):
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIsNotNone(response.data["phone"])
+
+
+class StaffRegistrationTest(BaseTest):
+    """Contains user registration test methods."""
+
+    def test_staff_register(self):
+        """Create staff account."""
+        response = self.client.post(self.registration_url + '?user=staff', self.staff, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    @patch("api.authentication.models.send_mail")
+    def test_add_staff(self, _):
+        """Test Add staff."""
+        data = {"email": "jratcher@gmail.com"}
+        request = self.request_factory.post(self.registration_url, data)
+        self.user.is_admin = True
+        force_authenticate(request, self.user)
+        response = views.AddStaffView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)

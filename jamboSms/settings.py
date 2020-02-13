@@ -29,7 +29,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("ENV") == "dev" or os.getenv("ENV") == "staging"
+DEBUG = os.getenv("ENV") == "dev" or os.getenv("ENV") == "staging" or False
 
 ALLOWED_HOSTS = []
 
@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "drf_yasg",
     "corsheaders",
+    "djcelery_email",
     "core",
     "api.authentication",
     "api.sms"
@@ -165,6 +166,23 @@ SWAGGER_SETTINGS = {
       }
    }
 }
+
+BROKER_URL = os.getenv("BROKER_URL")
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND")
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Africa/Nairobi'
+CELERY_ACCEPT_CONTENT = ['pickle', 'json','application/text']
+
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_HOST = os.getenv("EMAIL_HOST")
+EMAIL_USE_TLS = True
+EMAIL_PORT = os.getenv("EMAIL_PORT")
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+
+FRONTEND_LINK = os.getenv("FRONTEND_LINK")
 
 CORS_ORIGIN_ALLOW_ALL = True
 

@@ -1,11 +1,16 @@
 from django.db import models
-from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model, password_validation
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.core.mail import send_mail
+from django.conf import settings
 from django.contrib.auth.models import (
     BaseUserManager,
     AbstractBaseUser,
     PermissionsMixin,
 )
+
+from rest_framework.exceptions import ValidationError
 
 from core.models import AbstractBaseModel, ActiveObjectsQuerySet
 from core.utils.validators import validate_phone_number, validate_required_arguments
@@ -17,21 +22,19 @@ class UserManager(BaseUserManager):
     """
 
     def create_user(
-        self, full_name=None, email=None, password=None, phone=None, **kwargs
+        self, full_name=None, email=None, password=None, phone=None, company=None, **kwargs
     ):
-        REQUIRED_ARGS = ("full_name", "email", "password", "phone")
-
+        REQUIRED_ARGS = ("full_name", "email", "password", "phone", "company")
         validate_required_arguments(
             {
                 "full_name": full_name,
                 "email": email,
                 "password": password,
                 "phone": phone,
+                "company": company
             },
             REQUIRED_ARGS,
         )
-
-        # employer = Employer.objects.get_or_create(employer_code=employer)[0]
 
         # ensure that the passwords are strong enough.
         try:
@@ -39,13 +42,14 @@ class UserManager(BaseUserManager):
         except ValidationError as exc:
             # return error accessible in the appropriate field, ie password
             raise ValidationError({"password": exc.messages}) from exc
-
+        company, _ = Company.objects.get_or_create(name=company)
         user = self.model(
             full_name=full_name,
             email=self.normalize_email(email),
             phone=phone,
+            company=company,
             **kwargs
-        )
+        )   
 
         # ensure phone number and all fields are valid.
         user.clean()
@@ -59,13 +63,14 @@ class UserManager(BaseUserManager):
         email=None,
         password=None,
         phone=None,
+        company=None,
         **kwargs
     ):
         """
         This is the method that creates superusers in the database.
         """
 
-        admin = self.create_user(
+        superuser = self.create_user(
             full_name=full_name,
             email=email,
             password=password,
@@ -76,7 +81,34 @@ class UserManager(BaseUserManager):
             is_active=True,
         )
 
-        return admin
+        return superuser
+
+    def create_staff(
+        self,
+        full_name=None,
+        email=None,
+        password=None,
+        phone=None,
+        company=None,
+        **kwargs
+    ):
+        """
+        This is the method that creates superusers in the database.
+        """
+        staff = self.create_user(
+            full_name=full_name,
+            email=email,
+            password=password,
+            phone=phone,
+            company=company,
+            is_superuser=False,
+            is_staff=True,
+            is_verified=True,
+            is_active=True,
+            is_admin=False
+        )
+
+        return staff
 
 
 class User(AbstractBaseModel, AbstractBaseUser):
@@ -87,8 +119,14 @@ class User(AbstractBaseModel, AbstractBaseUser):
     full_name = models.CharField(max_length=150)
     email = models.EmailField(unique=True)
     phone = models.CharField(unique=True, max_length=50)
+    company = models.ForeignKey(
+        "Company",
+        on_delete=models.CASCADE,
+        related_name="employees"
+    )
     is_verified = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
+    is_admin = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
 
@@ -126,3 +164,26 @@ class User(AbstractBaseModel, AbstractBaseUser):
                 {"phone": "Please enter a valid international phone number."}
             )
         return super().clean()
+
+class AddStaffModel(models.Model):
+    """Stores emails and token"""
+    email = models.EmailField()
+    token = models.CharField(unique=True, max_length=300)
+
+    def __str__(self):
+        return self.email
+
+class Company(models.Model):
+    name = models.CharField(unique=True, max_length=50)
+
+    def __str__(self):
+        return self.name
+
+@receiver(post_save, sender=AddStaffModel, dispatch_uid="create_staff_registration_token")
+def send_inquiry_email(sender, instance, **kwargs):
+    subject = "Jambo SMS Staff registration link"
+    message = settings.FRONTEND_LINK + instance.token.decode("utf-8")
+    email_from = settings.EMAIL_HOST_USER
+    receipient_list = [instance.email]
+    send_mail( subject, message, email_from, receipient_list )
+    

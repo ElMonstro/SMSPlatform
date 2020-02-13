@@ -19,6 +19,14 @@ class IsOwnerorSuperuser(BasePermission):
         )
 
 
-class IsOwner(BasePermission):
+class IsComapanyOwned(BasePermission):
     def has_object_permission(self, request, view, obj):
-        return obj.owner == request.user
+        return obj.company == request.user.company
+
+class IsAdmin(BasePermission):
+    """
+    Allows access only to 'is_superuser' users
+    """
+
+    def has_permission(self, request, view):
+        return request.user.is_admin

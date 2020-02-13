@@ -3,11 +3,11 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from . import serializers, models
 from core.utils.sms_helpers import send_sms
-from core.permissions import IsOwnerorSuperuser, IsOwner
-from core.views import CustomGenericAPIView
+from core.permissions import IsOwnerorSuperuser, IsComapanyOwned
+from core.views import CustomCreateAPIView
 
 
-class SMSRequestView(generics.ListCreateAPIView, CustomGenericAPIView):
+class SMSRequestView(generics.ListAPIView, CustomCreateAPIView):
     """create, list and delete sms requests """
 
     serializer_class = serializers.SMSRequestSerializer
@@ -21,41 +21,35 @@ class SMSRequestView(generics.ListCreateAPIView, CustomGenericAPIView):
         serializer.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
 
-
-class SMSTemplateView(generics.ListCreateAPIView, CustomGenericAPIView):
+class SMSTemplateView(generics.ListAPIView, CustomCreateAPIView):
     """Create or list sms templates"""
 
     serializer_class = serializers.SMSTemplateSerializer
     queryset = models.SMSTemplate.objects.all()
 
-    def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
-class SingleSMSTemplateView(generics.RetrieveUpdateDestroyAPIView, CustomGenericAPIView):
+
+class SingleSMSTemplateView(generics.RetrieveUpdateDestroyAPIView, CustomCreateAPIView):
     """Single SMS actions"""
 
-    permission_classes = [IsOwner]
+    permission_classes = [IsComapanyOwned]
     serializer_class = serializers.SMSTemplateSerializer
     queryset = models.SMSTemplate.objects.all()
 
-class GroupView(generics.ListCreateAPIView, CustomGenericAPIView):
+class GroupView(generics.ListAPIView, CustomCreateAPIView):
     """Create or list groups"""
     serializer_class = serializers.SMSGroupSerializer
     queryset = models.SMSGroup.objects.all()
 
-    def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
 
 
-class SingleGroupView(generics.RetrieveUpdateDestroyAPIView, CustomGenericAPIView):
+class SingleGroupView(generics.RetrieveUpdateDestroyAPIView):
     """
     Get, delete and update a group, Patch update is used to add members while PUT 
     update is used to remove members
     """
 
-    permission_classes = [IsOwner]
+    permission_classes = [IsComapanyOwned]
     serializer_class = serializers.SingleSMSGroupSerializer
     queryset = models.SMSGroup.objects.all()
 
@@ -76,13 +70,11 @@ class SingleGroupView(generics.RetrieveUpdateDestroyAPIView, CustomGenericAPIVie
         serializer.save()
 
 
-class GroupMembersView(generics.CreateAPIView, CustomGenericAPIView):
+class GroupMembersView(generics.ListAPIView,CustomCreateAPIView):
     """Create or list members"""
     serializer_class = serializers.GroupMemberSerializer
     queryset = models.GroupMember.active_objects.all()
 
-    def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
 
 
 class SingleGroupMembersView(generics.RetrieveUpdateDestroyAPIView):

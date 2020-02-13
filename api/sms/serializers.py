@@ -1,5 +1,7 @@
 from rest_framework.exceptions import ValidationError
 from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
+
 from . import models
 from core.utils.sms_helpers import send_sms
 from core.utils.validators import validate_phone_list
@@ -46,14 +48,14 @@ class SMSRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.SMSRequest
         fields = "__all__"
-        extra_kwargs = {'owner': {'read_only':True}}
+        extra_kwargs = {'company': {'read_only':True}}
 
 
 class SMSGroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.SMSGroup
         fields = "__all__"
-        extra_kwargs = {'owner': {'read_only':True}}
+        extra_kwargs = {'company': {'read_only':True}}
 
 
 class SMSTemplateSerializer(serializers.ModelSerializer):
@@ -64,7 +66,7 @@ class SMSTemplateSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.SMSTemplate
         fields = "__all__"
-        extra_kwargs = {'owner': {'read_only':True}}
+        extra_kwargs = {'company': {'read_only':True}}
 
 
 class DeleteSMSRequestsSerializer(serializers.Serializer):
@@ -86,7 +88,7 @@ class GroupMemberSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.GroupMember
         fields = "__all__"
-        extra_kwargs = {'owner': {'read_only':True}}
+        extra_kwargs = {'company': {'read_only':True}}
 
 
 class SingleSMSGroupSerializer(serializers.ModelSerializer):
@@ -94,5 +96,5 @@ class SingleSMSGroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.SMSGroup
         fields = "__all__"
-        extra_kwargs = {'owner': {'read_only':True},
+        extra_kwargs = {'company': {'read_only':True},
         "members": {"write_only": True}}
