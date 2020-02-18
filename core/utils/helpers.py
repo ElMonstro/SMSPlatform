@@ -1,6 +1,8 @@
 from django.db.utils import IntegrityError
 from django.db import models
 from rest_framework.exceptions import ValidationError
+import pandas as pd
+from regex import regex as re
 
 
 def get_errored_integrity_field(exc):
@@ -46,3 +48,55 @@ def soft_delete_owned_object(model, user, pk):
         pass
     except (ValueError, TypeError):
         raise ValidationError({"detail": f"Only integers allowed. '{pk}' is invalid."})
+
+
+class CsvExcelReader:
+    """
+    A class that is initialized with a csv or excel file another which is 
+    read and data placed in the data property
+    """
+    def __init__(self, file, required_headers):
+        self.data = None
+        self.file = file
+        self.required_headers = required_headers
+        self.read_file()
+        self.validate_headers()
+
+    def read_csv(self):
+        self.data = pd.read_csv(self.file)
+
+    def read_excel(self):
+        self.data = pd.read_excel(self.file)
+    
+    def read_file(self):
+        read_file = {
+            "csv": self.read_csv,
+            "xls": self.read_excel,
+            "xlsx": self.read_excel
+        }
+        ext = self.file.name.split(".")[-1]
+        read_file[ext]()
+    
+    def validate_headers(self):
+        headers = sorted(self.data)
+        valid = all(value in headers for value in self.required_headers)
+        if not valid:
+            raise ValidationError({"detail": "The file does not have all the required column headers," \
+                + f"make sure it has the following headers: {str(self.required_headers)[1:-1]} "})
+
+
+def add_country_code(number):
+    """
+    Checks if number has the the country code and add it
+    """
+    regex_pattern = r"^\+\d{3}\d{9}$"
+    number = str(number)
+    match = re.search(regex_pattern, number)
+    if match:
+        return number
+    regex_pattern = r"^\d{9}$"
+    match = re.match(regex_pattern, number)
+    if match:
+        return "+254" + number
+    else:
+        raise ValidationError()
