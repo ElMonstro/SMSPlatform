@@ -51,6 +51,7 @@ class GroupMember(AbstractBaseModel):
     phone = models.CharField(max_length=30, validators=[validate_phone_number])
 
     active_objects = ActiveObjectsQuerySet.as_manager()
+    objects = models.Manager()
 
     class Meta:
         unique_together = ('company', 'phone',)

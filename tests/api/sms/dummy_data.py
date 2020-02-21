@@ -1,3 +1,7 @@
+import factory
+
+name = factory.Faker('sentence', nb_words=5, variable_nb_words=True)
+
 valid_sms_data = {
     "message": "yeah mayyyne",
     "recepients": ["+254754333000"]
@@ -23,8 +27,8 @@ invalid_sms_template_data = {
 }
 
 valid_group_data = {
-    "name": "devs",
-    "description": "youuu"
+    "name": name,
+    "description": "name"
 }
 
 valid_member_data = {

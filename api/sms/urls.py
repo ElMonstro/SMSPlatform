@@ -11,4 +11,6 @@ urlpatterns = [
     path("groups/<int:pk>/", views.SingleGroupView.as_view(), name="single_group"),
     path("groups/members/", views.GroupMembersView.as_view(), name="group_members"),
     path("group-members/<int:pk>/", views.SingleGroupMembersView.as_view(), name="single_group_member"),
+    path("group-members/upload/", views.MassMemberUploadView.as_view(), name="mass-upload-member"),
+    path("upload/", views.CsvSmsView.as_view(), name="csv_sms")
 ]

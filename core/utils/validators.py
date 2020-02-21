@@ -1,5 +1,6 @@
 import re
 from rest_framework.exceptions import ValidationError
+from .helpers import add_country_code
 
 
 def validate_passed_file_extension(extension):
@@ -25,7 +26,7 @@ def validate_phone_number(phone):
     return True if number is valid. False otherwise.
     """
 
-    regex_pattern = r"^\+\d{1,3}\d{3,}$"
+    regex_pattern = r"^\+\d{3}\d{9}$"
 
     match = re.search(regex_pattern, phone)
 
@@ -84,3 +85,27 @@ def validate_model_reference_is_own(user, model, instance):
     """Validate the user owns the group reference"""
     if not instance.owner == user:
         raise ValidationError({"detail": "The group referenced is not owned by the current user"})
+
+
+def validate_excel_csv(file):
+    """
+    Validate csv or excel files
+    """
+    ext = file.name.split(".")[-1]
+    regex_pattern = r"^(xls|xlsx|csv)$"
+
+    match = re.match(regex_pattern, ext)
+    if not match:
+        raise ValidationError("File type invalid, please upload csv or excel files")
+    return True
+
+def validate_csv_row(serializer):
+    try:
+        serializer.is_valid()
+    except ValidationError:
+        return
+    try:
+        intnl_phone = add_country_code(serializer.validated_data["phone"])
+    except ValidationError:
+        return
+    return intnl_phone
