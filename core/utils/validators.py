@@ -101,7 +101,7 @@ def validate_excel_csv(file):
 
 def validate_csv_row(serializer):
     try:
-        serializer.is_valid()
+        serializer.is_valid(raise_exception=True)
     except ValidationError:
         return
     try:
@@ -109,3 +109,27 @@ def validate_csv_row(serializer):
     except ValidationError:
         return
     return intnl_phone
+
+def validate_first_name_column(first_name):
+    if first_name == 'nan':
+        raise ValidationError()
+
+def validate_mpesa_phone_number(phone):
+    """
+    Validate mpesa phone number.
+    - Number must contain no spaces
+    - Number must be of correct length
+    - Number must have no letters
+
+    https://support.twilio.com/hc/en-us/articles/223183008-Formatting-International-Phone-Numbers
+
+    return True if number is valid. False otherwise.
+    """
+
+    regex_pattern = r"^254\d{9}$"
+
+    match = re.search(regex_pattern, phone)
+
+    if not match:
+        return False
+    return True

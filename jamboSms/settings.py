@@ -48,7 +48,8 @@ INSTALLED_APPS = [
     "djcelery_email",
     "core",
     "api.authentication",
-    "api.sms"
+    "api.sms",
+    "api.payment"
 ]
 
 MIDDLEWARE = [
@@ -170,8 +171,8 @@ SWAGGER_SETTINGS = {
 BROKER_URL = os.getenv("BROKER_URL")
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND")
 CELERY_ACCEPT_CONTENT = ['application/json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TASK_SERIALIZER = 'pickle'
+CELERY_RESULT_SERIALIZER = 'pickle'
 CELERY_TIMEZONE = 'Africa/Nairobi'
 CELERY_ACCEPT_CONTENT = ['pickle', 'json','application/text']
 
@@ -183,6 +184,22 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 
 FRONTEND_LINK = os.getenv("FRONTEND_LINK")
+
+MPESA_CONSUMER_KEY = os.getenv("MPESA_CONSUMER_KEY")
+MPESA_CONSUMER_SECRET = os.getenv("MPESA_CONSUMER_SECRET")
+MPESA_GENERATE_AUTH_TOKEN_URL = os.getenv("MPESA_GENERATE_AUTH_TOKEN_URL")
+MPESA_BUSINESS_SHORTCODE = os.getenv("MPESA_BUSINESS_SHORTCODE")
+MPESA_LNM_PASSKEY = os.getenv("MPESA_LNM_PASSKEY")
+MPESA_CALLBACK_URL = os.getenv("MPESA_CALLBACK_URL")
+MPESA_LNM_URL = os.getenv("MPESA_LNM_URL")
+
+
+CACHES = {
+   'default': {
+      'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+      'LOCATION': 'cache_table',
+   }
+}
 
 CORS_ORIGIN_ALLOW_ALL = True
 
