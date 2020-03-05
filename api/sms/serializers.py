@@ -7,11 +7,13 @@ from rest_framework.validators import UniqueTogetherValidator
 
 from . import models
 from core.utils.sms_helpers import (send_sms, 
-create_personalized_message, send_mass_unique_sms)
+create_personalized_message, send_mass_unique_sms, count_sms,
+count_personalized_sms, update_sms_count)
 from core.utils.helpers import (soft_delete_owned_object, 
 CsvExcelReader, add_country_code)
 from core.utils.validators import (validate_primary_keys, 
-validate_phone_list, validate_excel_csv, validate_csv_row)
+validate_phone_list, validate_excel_csv, validate_csv_row,
+validate_first_name_column)
 
 
 class SMSRequestSerializer(serializers.ModelSerializer):
@@ -47,7 +49,12 @@ class SMSRequestSerializer(serializers.ModelSerializer):
             receipients = list(receipients)
         else:
             validated_data["recepients"] = receipients = list(set(receipients))
+
+        company = self.context["request"].user.company
+        sms_count = count_sms(validated_data["message"], receipients)
+        update_sms_count(sms_count, company)
         send_sms(validated_data["message"], receipients)
+        validated_data["sms_count"] = sms_count
         return super().create(validated_data)
 
     class Meta:
@@ -158,7 +165,7 @@ class CsvMembersUploadSerializer(serializers.Serializer):
 
 class PersonalizedMsgSerializer(serializers.Serializer):
     phone = serializers.CharField()
-    first_name = serializers.CharField()
+    first_name = serializers.CharField(validators=[validate_first_name_column])
     last_name = serializers.CharField(required=False)
 
 
@@ -169,26 +176,21 @@ class CsvSmsContactUpload(serializers.Serializer):
     
     def send_sms(self):
         """Send sms to csv uploaded contacts"""
-        file = self.validated_data["file"]
-        required_headers = ["phone"]
-        csv_excel_reader = CsvExcelReader(file, required_headers)
-        recepients = []
-        skipped_lines = []
         message = self.validated_data["message"]
-        for i, row in csv_excel_reader.data.iterrows():
-            serializer = GroupMemberUploadSerializer(data=dict(row))
-            intnl_phone = validate_csv_row(serializer)
-            recepients.append(intnl_phone) if intnl_phone else skipped_lines.append(i+1)
+        recepients, skipped_lines = self.read_csv()
         company = self.context["request"].user.company
         recepients = list(set(recepients))
-        send_sms(message, recepients)
-        sms_request = models.SMSRequest(message=message, recepients=recepients, company=company)
+        sms_count = count_sms(message, recepients)
+        update_sms_count(sms_count, company)
+        send_sms.delay(message, recepients)
+        sms_request = models.SMSRequest(message=message, recepients=recepients, company=company, sms_count=sms_count)
         sms_request.save()
         data = {
             "recepients": recepients,
+            "sms_count": sms_count
             }
         if skipped_lines:
-            data["skipped_lines"] = f"The following lines were skipped: {str(skipped_lines)[1:-1]} because of invalid phone numbers"
+            data["skipped_lines"] = f"The following lines were skipped: {str(skipped_lines)[1:-1]}, because of invalid phone numbers"
 
         return data
 
@@ -199,32 +201,54 @@ class CsvSmsContactUpload(serializers.Serializer):
 
         if not greeting_text:
             raise ValidationError({"greeting_text": "There must be a greeting message for personalized messages"})
-        file = self.validated_data["file"]
-        required_headers = ["phone", "first_name"]
-        csv_excel_reader = CsvExcelReader(file, required_headers)
-        recepients = []
-        skipped_lines = []
+        recepients, skipped_lines = self.read_csv(personalized=True)
         message = self.validated_data["message"]
         company = self.context["request"].user.company
+        sms_count = count_personalized_sms(message, greeting_text, recepients)
+        update_sms_count(sms_count, company)
+        sms_request = models.SMSRequest(message=message, recepients=[contact["phone"] for contact in recepients], company=company, sms_count=sms_count)
+        sms_request.save()
+        send_mass_unique_sms.delay(message, greeting_text, recepients)
+        data = {
+            "recepients": recepients,
+            "sms_count": sms_count
+            }
+        if skipped_lines:
+            data["skipped_lines"] = f"The following lines were skipped: {str(skipped_lines)[1:-1]}" \
+            + ", because of invalid phone numbers or don't have first names "
+
+        return data
+
+
+    def read_csv(self, personalized=False):
+        """
+        Args: 
+                personalized(bool) - used to alternate between a list of objects for
+                personalized messages or a list of phone no.s for same messages
+        returns: a tuple skipped lines and list of phone no.s or objects
+        """
+        recepients = []
+        skipped_lines = []
+        file = self.validated_data["file"]
+        if personalized:
+            required_headers = ["phone", "first_name"]
+            serializer_class = PersonalizedMsgSerializer
+        else:
+            required_headers = ["phone"]
+            serializer_class = GroupMemberUploadSerializer
+
+        csv_excel_reader = CsvExcelReader(file, required_headers)
         for i, row in csv_excel_reader.data.iterrows():
-            serializer = PersonalizedMsgSerializer(data=dict(row))
+            serializer = serializer_class(data=dict(row))
             intnl_phone = validate_csv_row(serializer)
             if not intnl_phone:
                 skipped_lines.append(i+1)
                 continue
-            first_name = serializer.validated_data["first_name"]
-            contact = {"first_name": first_name, "phone": intnl_phone}
-            recepients.append(contact)
-        
-        sms_request = models.SMSRequest(message=message, recepients=[contact["phone"] for contact in recepients], company=company)
-        sms_request.save()
-        send_mass_unique_sms.delay(message, greeting_text, recepients)
-        data = {
-            "recepients": recepients
-            }
-        if skipped_lines:
-            data["skipped_lines"] = f"The following lines were skipped: {str(skipped_lines)[1:-1]}" \
-            + "because of invalid phone numbers or don't have first names "
+            if personalized:
+                first_name = serializer.validated_data["first_name"]
+                contact = {"first_name": first_name, "phone": intnl_phone}
+            else:
+                contact = intnl_phone
 
-        return data
-        
+            recepients.append(contact)
+        return (recepients, skipped_lines)

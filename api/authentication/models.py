@@ -175,6 +175,7 @@ class AddStaffModel(models.Model):
 
 class Company(models.Model):
     name = models.CharField(unique=True, max_length=50)
+    sms_count = models.IntegerField(default=5)
 
     def __str__(self):
         return self.name

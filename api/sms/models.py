@@ -8,7 +8,7 @@ class SMSRequest(AbstractBaseModel):
     company = models.ForeignKey(
         "authentication.Company", on_delete=models.CASCADE,related_name="sms_requests"
     )
-    message = models.CharField(max_length=160)
+    message = models.CharField(max_length=800)
     group = models.ForeignKey(
         "SMSGroup",
         related_name="sms_requests",
@@ -19,6 +19,7 @@ class SMSRequest(AbstractBaseModel):
     recepients = ArrayField(
         base_field=models.CharField(max_length=20), size=5, blank=True, null=True
     )
+    sms_count = models.IntegerField(default=0)
 
     active_objects = ActiveObjectsQuerySet.as_manager()
 
@@ -40,7 +41,7 @@ class SMSTemplate(models.Model):
         "authentication.Company", on_delete=models.CASCADE,related_name="company_templates"
     )
     name = models.CharField(max_length=20, null=True)
-    message = models.CharField(max_length=160)
+    message = models.CharField(max_length=800)
 
 class GroupMember(AbstractBaseModel):
     company = models.ForeignKey(

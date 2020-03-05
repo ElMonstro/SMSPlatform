@@ -63,10 +63,10 @@ class CsvExcelReader:
         self.validate_headers()
 
     def read_csv(self):
-        self.data = pd.read_csv(self.file)
+        self.data = pd.read_csv(self.file).drop_duplicates(subset=["phone"], keep="first")
 
     def read_excel(self):
-        self.data = pd.read_excel(self.file)
+        self.data = pd.read_excel(self.file).drop_duplicates(subset=["phone"], keep="first")
     
     def read_file(self):
         read_file = {
@@ -76,6 +76,7 @@ class CsvExcelReader:
         }
         ext = self.file.name.split(".")[-1]
         read_file[ext]()
+        self.data
     
     def validate_headers(self):
         headers = sorted(self.data)
@@ -89,8 +90,10 @@ def add_country_code(number):
     """
     Checks if number has the the country code and add it
     """
+    if number == 'nan':
+        raise ValidationError()
     regex_pattern = r"^\+\d{3}\d{9}$"
-    number = str(number)
+    number = str(int(float(number)))
     match = re.search(regex_pattern, number)
     if match:
         return number
@@ -100,3 +103,14 @@ def add_country_code(number):
         return "+254" + number
     else:
         raise ValidationError()
+
+
+def camel_to_snake(name):
+    """Convert camelcase names to snake case"""
+    pattern = re.compile(r'(?<!^)(?=[A-Z])')
+    name = pattern.sub('_', name).lower()
+    return name
+
+def raise_validation_error(message=None):
+    raise ValidationError(message)
+    
