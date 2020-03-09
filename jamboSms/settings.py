@@ -49,7 +49,9 @@ INSTALLED_APPS = [
     "core",
     "api.authentication",
     "api.sms",
-    "api.payment"
+    "api.payment",
+    "api.schedule",
+    "django_celery_beat"
 ]
 
 MIDDLEWARE = [

@@ -20,6 +20,10 @@ from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 
+from core.utils.mpesa_helpers import setup_get_mpesa_token_cron_job
+
+setup_get_mpesa_token_cron_job()
+
 schema_view = get_schema_view(
    openapi.Info(
       title="Snippets API",

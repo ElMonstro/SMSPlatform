@@ -7,9 +7,13 @@ from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.core.cache import cache
+
+from django_celery_beat.models import CrontabSchedule, PeriodicTask
+
 from jamboSms.celery import app
 from api.payment.models import RechargeRequest
 from .helpers import camel_to_snake, raise_validation_error
+
 
 
 class BearerAuth(requests.auth.AuthBase):
@@ -94,5 +98,13 @@ def validate_mpesa_callback_request(callback_transaction_time, recharge_request_
     """Validate time difference between recharge request and callback transaction time"""
     recharge_request_time = recharge_request_time.replace(tzinfo=None)
     time_difference = callback_transaction_time - recharge_request_time
-    if time_difference > timedelta(seconds=90) or time_difference < timedelta(seconds=0):
+    if time_difference > timedelta(seconds=60) or time_difference < timedelta(seconds=0):
         raise_validation_error({"detail": "Invalid request"}) 
+
+def setup_get_mpesa_token_cron_job():
+    crontab, _ = CrontabSchedule.objects.get_or_create(minute=59)
+    periodic_task, _ = PeriodicTask.objects.get_or_create(
+        crontab=crontab,
+        name="get_access_token",
+        task="core.utils.mpesa_helpers.get_access_token",
+    )
