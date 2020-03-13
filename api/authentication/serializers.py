@@ -1,16 +1,24 @@
 from datetime import datetime
+from jwt import encode, decode, DecodeError
 
 from django.db.utils import IntegrityError
 from django.contrib.auth.password_validation import validate_password
-from rest_framework.exceptions import ValidationError
 from django.conf import settings
+from django.shortcuts import get_object_or_404
 
 from rest_framework import serializers
-from jwt import encode, decode, DecodeError
+from rest_framework.exceptions import ValidationError
 
 from core.utils.validators import validate_phone_number
 from core.utils.helpers import get_errored_integrity_field
 from .models import User, AddStaffModel, Company
+
+
+class CompanySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        fields = "__all__"
+        model = Company
 
 
 class RegistrationSerializer(serializers.Serializer):
@@ -26,6 +34,8 @@ class RegistrationSerializer(serializers.Serializer):
     confirmed_password = serializers.CharField(
         max_length=124, min_length=8, write_only=True
     )
+    county = serializers.CharField(max_length=50, write_only=True)
+    company_data = CompanySerializer(read_only=True, source='company')
 
     def validate(self, data):
         """validate data before it gets saved"""
@@ -43,7 +53,6 @@ class RegistrationSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         validated_data.pop("confirmed_password")
-        validated_data.update({"is_admin": True})
         try:
             user = self.Meta.create_user(**validated_data)
             return user
@@ -84,13 +93,6 @@ class AddStaffSerializer(serializers.ModelSerializer):
         extra_kwargs = {'token': {'read_only':True}}
 
 
-class CompanySerializer(serializers.ModelSerializer):
-
-    class Meta:
-        fields = "__all__"
-        model = Company
-
-
 class StaffRegistrationSerializer(RegistrationSerializer):
 
     token = serializers.CharField(required=True, write_only=True)
@@ -110,3 +112,24 @@ class StaffRegistrationSerializer(RegistrationSerializer):
 
     class Meta:
         create_user = User.objects.create_staff
+
+
+class ResellerRegistration(RegistrationSerializer):
+
+    class Meta:
+        create_user = User.objects.create_reseller
+
+
+class ResellerClientSerializer(RegistrationSerializer):
+
+    def validate(self, data):
+        super().validate(data)
+        company_name = self.context['request'].query_params.get("parent_company")
+        company = get_object_or_404(Company, name=company_name)
+        if not company.is_reseller:
+            raise ValidationError({"detail": "Company specified in query params is not a reseller"})
+        data.update({"parent_company": company})
+        return data
+
+    class Meta:
+        create_user = User.objects.create_reseller_client

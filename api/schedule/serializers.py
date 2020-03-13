@@ -19,7 +19,6 @@ class CrontabScehduleSerializer(serializers.ModelSerializer):
 
     def get_fields(self, *args, **kwargs):
         fields = super().get_fields(*args, **kwargs)  
-        import pdb; pdb.set_trace()
         company = self.context["request"].user.company
         fields["group"].queryset = SMSGroup.objects.filter(company=company)
         return fields
@@ -32,7 +31,11 @@ class CrontabScehduleSerializer(serializers.ModelSerializer):
         message = self.validated_data.pop("message")
         name = self.validated_data.pop("name")
         expires = self.validated_data.pop("expires", None)
-        one_off = self.validated_data.pop("expires", None)
+        one_off = self.validated_data.pop("expires", False)
+        hour = self.validated_data.pop("expires", False)
+        if hour:
+            # convert to UTC
+            self.validated_data["hour"] = hour - 3
         crontab_schedule_instance, _ = CrontabSchedule.objects.get_or_create(**self.validated_data)
         company = self.context["request"].user.company
         name = company.name + '-' + name
@@ -40,7 +43,7 @@ class CrontabScehduleSerializer(serializers.ModelSerializer):
             periodic_task_instance = PeriodicTask.objects.create(
                 crontab=crontab_schedule_instance,
                 name=name,
-                task="core.utils.sms_helpers.send_sms",
+                task="send_sms",
                 args=json.dumps([message, receipients]),
                 expires=expires,
                 one_off=one_off
@@ -70,13 +73,6 @@ class SMSScheduleSerializer(serializers.Serializer):
         return fields
 
 
-class PeriodicTaskSerializer(serializers.ModelSerializer):
-    
-    class Meta:
-        model = PeriodicTask
-        fields = '__all__'
-    
-
 class UpdateScheduleTimeSerializer(serializers.ModelSerializer):   
 
     def update(self, instance, validated_data):
@@ -88,3 +84,10 @@ class UpdateScheduleTimeSerializer(serializers.ModelSerializer):
     class Meta:
         model = CrontabSchedule
         fields = ['minute', 'hour', 'day_of_week', 'day_of_month', 'month_of_year']
+
+
+class PeriodicTaskSerializer(serializers.ModelSerializer):
+    crontab = UpdateScheduleTimeSerializer(read_only=True)
+    class Meta:
+        model = PeriodicTask
+        fields = '__all__'

@@ -8,12 +8,11 @@ from datetime import datetime, timedelta
 from django.conf import settings
 from django.core.cache import cache
 
-from django_celery_beat.models import CrontabSchedule, PeriodicTask
+from django_celery_beat.models import CrontabSchedule, PeriodicTask, IntervalSchedule
 
 from jamboSms.celery import app
 from api.payment.models import RechargeRequest
 from .helpers import camel_to_snake, raise_validation_error
-
 
 
 class BearerAuth(requests.auth.AuthBase):
@@ -102,9 +101,10 @@ def validate_mpesa_callback_request(callback_transaction_time, recharge_request_
         raise_validation_error({"detail": "Invalid request"}) 
 
 def setup_get_mpesa_token_cron_job():
-    crontab, _ = CrontabSchedule.objects.get_or_create(minute=59)
-    periodic_task, _ = PeriodicTask.objects.get_or_create(
-        crontab=crontab,
+    schedule, _ = IntervalSchedule.objects.get_or_create(every=59, period=IntervalSchedule.MINUTES)
+    PeriodicTask.objects.get_or_create(
+        interval=schedule,
         name="get_access_token",
-        task="core.utils.mpesa_helpers.get_access_token",
+        task="get_access_token",
     )
+    

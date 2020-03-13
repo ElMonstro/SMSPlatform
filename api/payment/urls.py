@@ -6,4 +6,5 @@ urlpatterns = [
     path('recharge/', views.RechargeView.as_view(), name='recharge'),
     path('list/', views.PaymentListView.as_view(), name='list_payments'),
     path('recharge-plan/', views.CreateListRechargePlanView.as_view(), name='create_list_recharge_plan'),
+    path('recharge-plan/reseller/', views.CreateListResellerRechargePlanView.as_view(), name='create_list_reseller_recharge_plan'),
 ]

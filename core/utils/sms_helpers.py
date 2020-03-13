@@ -58,9 +58,13 @@ def update_sms_count(sms_count, company, add=False):
             raise ValidationError({"detail": "You do not have enough SMS remaining to send this messages, please top up"})
         company.sms_count -= sms_count
     company.save()
+    return company.sms_count
 
 
 def calculate_recharge_sms(queryset, amount):
+    """
+    Choose a price rate from the database and calculate sms recharge
+    """
     queryset = queryset.order_by("price_limit")
     rate = None
     for recharge_plan in queryset:
