@@ -17,9 +17,8 @@ class Payment(AbstractBaseModel):
 
 
 class RechargePlan(models.Model):
-    company = models.ForeignKey("authentication.Company", on_delete=models.SET_NULL, null=True)
-    name = models.CharField(max_length=50)
-    price_limit = models.IntegerField()
+    name = models.CharField(max_length=50, unique=True)
+    price_limit = models.IntegerField(unique=True)
     rate = models.DecimalField(decimal_places=2, max_digits=3)
 
     def __str__(self):
@@ -35,3 +34,15 @@ class RechargeRequest(AbstractBaseModel):
 
     def __str__(self):
         return self.checkout_request_id
+
+
+class ResellerRechargePlan(models.Model):
+    company = models.ForeignKey("authentication.Company", on_delete=models.CASCADE)
+    name = models.CharField(max_length=50)
+    price_limit = models.IntegerField()
+    rate = models.DecimalField(decimal_places=2, max_digits=3)
+
+    def __str__(self):
+        return str(self.price_limit)
+    class Meta:
+        unique_together = ('company', 'price_limit')

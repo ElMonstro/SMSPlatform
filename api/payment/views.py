@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from core.views import CustomCreateAPIView, CustomListAPIView
 from . import serializers, models
 from core.utils.helpers import raise_validation_error
+from core.views import CustomCreateAPIView, CustomListAPIView
 
 class MpesaCallbackView(generics.CreateAPIView):
     """Mesa callback view"""
@@ -33,3 +34,8 @@ class RechargeView(APIView):
 class CreateListRechargePlanView(generics.ListCreateAPIView):
     serializer_class = serializers.RechargePlanSerializer
     queryset = models.RechargePlan.objects.all()
+
+
+class CreateListResellerRechargePlanView(generics.ListAPIView, CustomCreateAPIView):
+    serializer_class = serializers.ResellerRechargePlanSeializer
+    queryset = models.ResellerRechargePlan.objects.all()
