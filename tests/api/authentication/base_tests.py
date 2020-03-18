@@ -23,12 +23,13 @@ class BaseTest(APITestCase):
             "password": self.user.password,
             "confirmed_password": self.user.password,       
             "phone": "+254" + fake.msisdn()[:9],
-            "company": "Company"
+            "company": fake.msisdn()[:9],
+            "county": "Nairobi"
         }
 
         payload = { 
             "email": fake.email(),
-            "company": self.new_user["company"],
+            "company": self.user.company.name,
             "date": datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
              }
         token = encode(payload, settings.SECRET_KEY)
@@ -47,7 +48,8 @@ class BaseTest(APITestCase):
             "password": self.user.password,
             "confirmed_password": self.user.password + "v",
             "phone": "+254" + fake.msisdn()[:9],
-            "company": "Company"
+            "company": "Company",
+            "county": "Nairobi"
         }
         self.invalid_email_data = {
             "full_name": self.user.full_name,
@@ -55,7 +57,8 @@ class BaseTest(APITestCase):
             "password": self.user.password,
             "confirmed_password": self.user.password,
             "phone": "+254" + fake.msisdn()[:9],
-            "company": "Company"
+            "company": "Company",
+            "county": "Nairobi"
         }
 
         self.no_company_field_data = {
@@ -64,6 +67,7 @@ class BaseTest(APITestCase):
             "password": self.user.password,
             "confirmed_password": self.user.password,
             "phone": "+254" + fake.msisdn()[:9],
+            "county": "Nairobi"
         }
 
         self.weak_password_data = {
@@ -72,6 +76,7 @@ class BaseTest(APITestCase):
             "password": "123456",
             "confirmed_password": self.user.password,
             "phone": "+254" + fake.msisdn()[:9],
+
         }
         self.number_in_first_name_data = {
             "full_name": self.user.full_name,
@@ -97,5 +102,6 @@ class BaseTest(APITestCase):
             "password": self.user.password,
             "confirmed_password": self.user.password, 
             "phone": "4352",
-            "company": "Company"
+            "company": "Company",
+            "county": "Nairobi"
         }

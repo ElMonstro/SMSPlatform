@@ -4,8 +4,7 @@ from rest_framework.response import Response
 
 from django_celery_beat.models import PeriodicTask
 
-from . import serializers
-from . import models
+from . import serializers, models
 
 
 class CreateScheduleView(generics.GenericAPIView):
@@ -13,7 +12,7 @@ class CreateScheduleView(generics.GenericAPIView):
 
     def post(self, request, *args, **kwargs):
         serializer = serializers.CrontabScehduleSerializer(data=request.data, context={"request": request})
-        serializer.is_valid()
+        serializer.is_valid(raise_exception=True)
         period_task_instance = serializer.save()
         period_task_serializer  = serializers.PeriodicTaskSerializer(instance=period_task_instance)
         return Response(data=period_task_serializer.data, status=status.HTTP_201_CREATED)

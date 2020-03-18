@@ -31,11 +31,12 @@ class CrontabScehduleSerializer(serializers.ModelSerializer):
         message = self.validated_data.pop("message")
         name = self.validated_data.pop("name")
         expires = self.validated_data.pop("expires", None)
-        one_off = self.validated_data.pop("expires", False)
-        hour = self.validated_data.pop("expires", False)
+        one_off = self.validated_data.pop("one_off", False)
+        hour = self.validated_data.pop("hour", None)
         if hour:
             # convert to UTC
-            self.validated_data["hour"] = hour - 3
+            self.validated_data["hour"] = str(int(hour) - 3)
+        
         crontab_schedule_instance, _ = CrontabSchedule.objects.get_or_create(**self.validated_data)
         company = self.context["request"].user.company
         name = company.name + '-' + name

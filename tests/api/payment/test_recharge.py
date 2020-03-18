@@ -34,7 +34,7 @@ class TestMpesaCallBack(BaseTest):
     def test_receive_valid_mpesa_callback_request_succeeds(self):
         """Test that a valid mpesa callback will pass"""
         models.RechargeRequest(company=self.user.company, customer_number="254726406930", checkout_request_id="fwer544tgre", response_code=0).save()
-        models.RechargePlan(company=self.user.company, name="ting", rate=0.50, price_limit=5).save()
+        models.RechargePlan(name="ting", rate=0.50, price_limit=5).save()
         data = dummy_data.mpesa_callback.copy()
         transaction_date = (datetime.now() + timedelta(hours=3, seconds=60)).replace(tzinfo=None)
         data["Body"]["stkCallback"]["CallbackMetadata"]["Item"][3]["Value"] = transaction_date.strftime("%Y%m%d%H%M%S")
@@ -46,7 +46,7 @@ class TestMpesaCallBack(BaseTest):
     def test_receive_invalid_mpesa_callback_request_fails(self):
         """Test receive invalid mpesa callback request fails"""
         models.RechargeRequest(company=self.user.company, customer_number="254726406930", checkout_request_id="fwer544tgre", response_code=0).save()
-        models.RechargePlan(company=self.user.company, name="ting", rate=0.50, price_limit=5).save()
+        models.RechargePlan(name="ting", rate=0.50, price_limit=5).save()
         data = dummy_data.mpesa_callback.copy()
         transaction_date = (datetime.now() + timedelta(hours=4, seconds=60)).replace(tzinfo=None)
         data["Body"]["stkCallback"]["CallbackMetadata"]["Item"][3]["Value"] = transaction_date.strftime("%Y%m%d%H%M%S")
@@ -83,7 +83,7 @@ class TestGetPaymentsView(BaseTest):
     def test_get_payments_request_succeeds(self):
             """Test that a valid mpesa callback will pass"""
             models.RechargeRequest(company=self.user.company, customer_number="254726406930", checkout_request_id="fwer544tgre", response_code=0).save()
-            models.RechargePlan(company=self.user.company, name="ting", rate=0.50, price_limit=5).save()
+            models.RechargePlan(name="ting", rate=0.50, price_limit=5).save()
             data = dummy_data.mpesa_callback.copy()
             transaction_date = (datetime.now() + timedelta(hours=3, seconds=60)).replace(tzinfo=None)
             data["Body"]["stkCallback"]["CallbackMetadata"]["Item"][3]["Value"] = transaction_date.strftime("%Y%m%d%H%M%S")
