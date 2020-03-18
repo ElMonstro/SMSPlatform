@@ -99,6 +99,11 @@ class StaffRegistrationSerializer(RegistrationSerializer):
     company = CompanySerializer(read_only=True)
     email = serializers.ReadOnlyField()
 
+    def get_fields(self, *args, **kwargs):
+        fields = super().get_fields(*args, **kwargs)  
+        fields.pop("county")
+        return fields
+
     def is_valid(self, **kwargs):
         super().is_valid(**kwargs)
         token = self.validated_data["token"]

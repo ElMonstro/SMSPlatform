@@ -23,7 +23,7 @@ class UserManager(BaseUserManager):
     """
 
     def create_user(
-        self, full_name=None, email=None, password=None, phone=None, company=None, county=None, is_reseller=False, parent_company=None, **kwargs
+        self, full_name=None, email=None, password=None, phone=None, company=None, county=None, is_reseller=False, parent_company=None, is_admin=True, **kwargs
     ):
         REQUIRED_ARGS = ("full_name", "email", "password", "phone", "company")
         validate_required_arguments(
@@ -44,11 +44,13 @@ class UserManager(BaseUserManager):
             # return error accessible in the appropriate field, ie password
             raise ValidationError({"password": exc.messages}) from exc
 
-        try:
-            company = Company.objects.create(name=company, county=county, is_reseller=is_reseller, parent=parent_company)
-        except IntegrityError:
-            raise ValidationError({"name": "Company already exists with name"})
-
+        get_or_create_company_mapping = {
+            True: self.create_company,
+            False: self.get_company
+        }
+        
+        company = get_or_create_company_mapping[is_admin](name=company, county=county, is_reseller=is_reseller, parent=parent_company)
+        
         user = self.model(
             full_name=full_name,
             email=self.normalize_email(email),
@@ -61,6 +63,16 @@ class UserManager(BaseUserManager):
         user.set_password(password)
         user.save()
         return user
+
+    def get_company(self, name=None, county=None, is_reseller=None, parent=None):
+        return Company.objects.get(name=name)
+
+    def create_company(self, name=None, county=None, is_reseller=None, parent=None):
+        try:
+            company = Company.objects.create(name=name, county=county, is_reseller=is_reseller, parent=parent)
+        except IntegrityError:
+            raise ValidationError({"name": "Company already exists with name"}) 
+        return company
 
     def create_superuser(
         self,
@@ -85,6 +97,7 @@ class UserManager(BaseUserManager):
             is_verified=True,
             is_active=True,
             is_director=True,
+            is_admin=True,
             company='superuser',
             county="Nairobi"
         )
@@ -101,7 +114,7 @@ class UserManager(BaseUserManager):
         **kwargs
         ):
         """
-        This is the method that creates superusers in the database.
+        This is the method that creates staff in the database.
         """
         staff = self.create_user(
             full_name=full_name,
@@ -128,7 +141,7 @@ class UserManager(BaseUserManager):
         **kwargs
     ):
         """
-        This is the method that creates superusers in the database.
+        This is the method that creates resellers in the database.
         """
         reseller = self.create_user(
             full_name=full_name,
@@ -139,6 +152,7 @@ class UserManager(BaseUserManager):
             is_staff=True,
             is_director=True,
             is_reseller=True,
+            is_admin=True,
             **kwargs
 
         )
@@ -156,7 +170,7 @@ class UserManager(BaseUserManager):
         **kwargs
     ):
         """
-        This is the method that creates superusers in the database.
+        This is the method that creates reseller clients in the database.
         """
         reseller_client = self.create_user(
             full_name=full_name,
@@ -166,6 +180,7 @@ class UserManager(BaseUserManager):
             company=company,
             is_staff=True,
             is_director=True,
+            is_admin=True,
             parent_company=parent_company,
             **kwargs
         )

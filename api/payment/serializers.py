@@ -70,7 +70,7 @@ class PaymentSerializer(serializers.ModelSerializer):
     def update_sms_data(self, recharge_request_object, amount):
         recharge_request_object.completed = True
         recharge_request_object.save()
-        recharge_rates_queryset = self.create_recharge_rates_queryset()
+        recharge_rates_queryset = self.create_recharge_rates_queryset(recharge_request_object)
         sms_amount = calculate_recharge_sms(recharge_rates_queryset, amount)
         new_sms_balance  = update_sms_count(sms_amount, recharge_request_object.company, add=True)
         return new_sms_balance
