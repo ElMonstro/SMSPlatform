@@ -1,3 +1,5 @@
+import re
+
 from django.db.utils import IntegrityError
 from django.db import models
 from rest_framework.exceptions import ValidationError
@@ -26,6 +28,7 @@ def get_errored_integrity_field(exc):
 
     # the field is between the first pair of brackets after our message.
     field = exc_message[exc_message.find("(") + 1 : exc_message.find(")")]
+    field = field.split(' ')[-1]
 
     return field if field else None
 
@@ -63,10 +66,9 @@ class CsvExcelReader:
         self.validate_headers()
 
     def read_csv(self):
-        self.data = pd.read_csv(self.file).drop_duplicates(subset=["phone"], keep="first")
-
+        self.data = pd.read_csv(self.file).drop_duplicates(subset=self.required_headers, keep="first")
     def read_excel(self):
-        self.data = pd.read_excel(self.file).drop_duplicates(subset=["phone"], keep="first")
+        self.data = pd.read_excel(self.file).drop_duplicates(subset=self.required_headers, keep="first")
     
     def read_file(self):
         read_file = {

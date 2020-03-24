@@ -3,6 +3,8 @@ from django.db.utils import IntegrityError
 from rest_framework import generics
 from rest_framework.exceptions import ValidationError
 
+from .utils.helpers import get_errored_integrity_field
+
 class CustomCreateAPIView(generics.CreateAPIView):
     """
     This class adds the get_queryset function implementation that
@@ -19,7 +21,8 @@ class CustomCreateAPIView(generics.CreateAPIView):
         try: 
             serializer.save(company=self.request.user.company)
         except IntegrityError as error:
-            raise ValidationError({"detail": error})
+            field = get_errored_integrity_field(error)
+            raise ValidationError({field: f'This {field} already exists'})
 
 class CustomListAPIView(generics.ListAPIView):
     """

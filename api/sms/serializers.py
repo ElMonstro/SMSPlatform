@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404
 from django.db.utils import IntegrityError
+from django.core.mail import send_mail
 
 from rest_framework.exceptions import ValidationError
 from rest_framework import serializers
@@ -8,12 +9,12 @@ from rest_framework.validators import UniqueTogetherValidator
 from . import models
 from core.utils.sms_helpers import (send_sms, 
 create_personalized_message, send_mass_unique_sms, count_sms,
-count_personalized_sms, update_sms_count)
+count_personalized_sms, update_sms_count, update_email_count)
 from core.utils.helpers import (soft_delete_owned_object, 
-CsvExcelReader, add_country_code)
+CsvExcelReader, add_country_code, raise_validation_error)
 from core.utils.validators import (validate_primary_keys, 
 validate_phone_list, validate_excel_csv, validate_csv_row,
-validate_first_name_column)
+validate_first_name_column, get_intnl_phone)
 
 
 class SMSRequestSerializer(serializers.ModelSerializer):
@@ -59,13 +60,20 @@ class SMSRequestSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.SMSRequest
-        fields = "__all__"
+        fields = ["message", "group", "recepients"]
         extra_kwargs = {'company': {'read_only':True}}
 
 
 class SMSGroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.SMSGroup
+        fields = "__all__"
+        extra_kwargs = {'company': {'read_only':True}}
+
+
+class EmailGroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.EmailGroup
         fields = "__all__"
         extra_kwargs = {'company': {'read_only':True}}
 
@@ -103,7 +111,7 @@ class GroupMemberSerializer(serializers.ModelSerializer):
         if self.context["request"].user.is_anonymous:
             return fields
         company = self.context["request"].user.company
-        fields["group"].queryset = models.SMSGroup.objects.filter(company=company)
+        fields["group"].queryset = self.Meta.group_model.objects.filter(company=company)
         return fields
 
     def save(self, **kwargs):
@@ -113,6 +121,16 @@ class GroupMemberSerializer(serializers.ModelSerializer):
         return instance
     class Meta:
         model = models.GroupMember
+        group_model = models.SMSGroup
+        fields = "__all__"
+        extra_kwargs = {'company': {'read_only':True}}
+
+
+class EmailGroupMemberSerializer(GroupMemberSerializer):
+    
+    class Meta:
+        model = models.EmailGroupMember
+        group_model = models.EmailGroup
         fields = "__all__"
         extra_kwargs = {'company': {'read_only':True}}
 
@@ -130,38 +148,75 @@ class GroupMemberUploadSerializer(serializers.Serializer):
     first_name = serializers.CharField(required=False)
     last_name = serializers.CharField(required=False)
 
+
+class EmailGroupMemberUploadSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    first_name = serializers.CharField(required=False)
+    last_name = serializers.CharField(required=False)
+
+
+headers_mapping = {
+        None: ['phone'],
+        'email': ['email']
+    }
+
+serializer_model_mapping = {
+        None: (GroupMemberUploadSerializer, models.GroupMember),
+        "email": (EmailGroupMemberUploadSerializer, models.EmailGroupMember)
+    }
+
 class CsvMembersUploadSerializer(serializers.Serializer):
     file = serializers.FileField(validators=[validate_excel_csv], required=True)
     group = serializers.PrimaryKeyRelatedField(queryset=models.SMSGroup.objects.all())
+
+    def get_fields(self, *args, **kwargs):
+        fields = super().get_fields(*args, **kwargs)  
+        company = self.context["request"].user.company
+        medium = self.context["request"].query_params.get("medium")
+        model_mapping = {
+            None: models.SMSGroup,
+            'email': models.EmailGroup
+        }
+        fields["group"].queryset = model_mapping[medium].objects.filter(company=company)
+        return fields
     
     def save(self, *args, **kwargs):
         """Saves all valid data to the database while adding them to group if passed"""
         file = self.validated_data["file"]
-        required_headers = ["phone"]
+        medium = self.context["request"].query_params.get("medium")
+        serializer_class, model = serializer_model_mapping[medium]
+        required_headers = headers_mapping[medium]
         csv_excel_reader = CsvExcelReader(file, required_headers)
         members = []
         skipped_lines = []
         group = self.validated_data["group"]
+
         for i, row in csv_excel_reader.data.iterrows():
-            serializer = GroupMemberUploadSerializer(data=dict(row))
-            intnl_phone = validate_csv_row(serializer)
-            if not intnl_phone:
+            serializer = serializer_class(data=dict(row))
+            is_valid = serializer.is_valid()
+            if not is_valid:
                 skipped_lines.append(i+1)
-            serializer.validated_data["phone"] = intnl_phone
+                continue
+            if not medium:
+                intnl_phone = get_intnl_phone(serializer)
+                if not intnl_phone:
+                    skipped_lines.append(i+1)
+                    continue
+                serializer.validated_data["phone"] = intnl_phone
+
             serializer.validated_data["company"] = group.company
             try:
-                instance, _ = models.GroupMember.objects.get_or_create(**serializer.validated_data)
-
+                instance, _ = model.objects.get_or_create(**serializer.validated_data)
             except IntegrityError: # catch unique together error
                 skipped_lines.append(i+1)
                 continue
             members.append(instance)
             group.members.add(instance)
         group.save()
-        members = GroupMemberUploadSerializer(members, many=True).data
+        members = serializer_class(members, many=True).data
         data = {"members": members}
         if skipped_lines:
-            data["skipped_lines"] = f"The following lines were skipped: {str(skipped_lines)[1:-1]} because of invalid or duplicate phone numbers"
+            data["skipped_lines"] = f"The following lines were skipped: {str(skipped_lines)[1:-1]} because of invalid or duplicate {required_headers[0]}s"
         return data
 
 
@@ -171,10 +226,18 @@ class PersonalizedMsgSerializer(serializers.Serializer):
     last_name = serializers.CharField(required=False)
 
 
+
+validation_mapping = {
+            "sms": (GroupMemberUploadSerializer, ["phone"]),
+            "personalized": (PersonalizedMsgSerializer, ["phone", "first_name"]),
+            "email": (EmailGroupMemberSerializer, ["email", "subject"])
+        }
+
 class CsvSmsContactUpload(serializers.Serializer):
     file = serializers.FileField(validators=[validate_excel_csv])
     message = serializers.CharField(required=True)
     greeting_text = serializers.CharField(required=False)
+    subject = serializers.CharField(required=False)
     
     def send_sms(self):
         """Send sms to csv uploaded contacts"""
@@ -203,7 +266,7 @@ class CsvSmsContactUpload(serializers.Serializer):
 
         if not greeting_text:
             raise ValidationError({"greeting_text": "There must be a greeting message for personalized messages"})
-        recepients, skipped_lines = self.read_csv(personalized=True)
+        recepients, skipped_lines = self.read_csv(validate="personalized")
         message = self.validated_data["message"]
         company = self.context["request"].user.company
         sms_count = count_personalized_sms(message, greeting_text, recepients)
@@ -221,8 +284,35 @@ class CsvSmsContactUpload(serializers.Serializer):
 
         return data
 
+    def send_email(self):
+        file = self.validated_data["file"]
+        message = self.validated_data["message"]
+        subject = self.validated_data.get("subject")
 
-    def read_csv(self, personalized=False):
+        if not subject:
+            raise raise_validation_error({"subject": "This field is required."})
+        required_headers = ["email"]
+        csv_excel_reader = CsvExcelReader(file, required_headers)
+        receipients = []
+        skipped_lines = []
+
+        for i, row in csv_excel_reader.data.iterrows():
+            serializer = EmailGroupMemberUploadSerializer(data=dict(row))
+            is_valid = serializer.is_valid()
+            if not is_valid:
+                skipped_lines.append(i+1)
+                continue
+
+            email = serializer.validated_data["email"]
+            receipients.append(email)
+        
+        send_mail(subject, message, receipients)
+        data = {"members": receipients}
+        if skipped_lines:
+            data["skipped_lines"] = f"The following lines were skipped: {str(skipped_lines)[1:-1]} because of invalid or duplicate {required_headers[0]}s"
+        return data
+
+    def read_csv(self, validate="sms"):
         """
         Args: 
                 personalized(bool) - used to alternate between a list of objects for
@@ -232,25 +322,28 @@ class CsvSmsContactUpload(serializers.Serializer):
         recepients = []
         skipped_lines = []
         file = self.validated_data["file"]
-        if personalized:
-            required_headers = ["phone", "first_name"]
-            serializer_class = PersonalizedMsgSerializer
-        else:
-            required_headers = ["phone"]
-            serializer_class = GroupMemberUploadSerializer
+        
+        serializer_class, required_headers = validation_mapping[validate]
 
         csv_excel_reader = CsvExcelReader(file, required_headers)
-        for i, row in csv_excel_reader.data.iterrows():
+        rows = csv_excel_reader.data.iterrows()
+        for i, row in rows:
             serializer = serializer_class(data=dict(row))
-            intnl_phone = validate_csv_row(serializer)
-            if not intnl_phone:
+            is_valid = serializer.is_valid()
+            if not is_valid:
                 skipped_lines.append(i+1)
                 continue
-            if personalized:
-                first_name = serializer.validated_data["first_name"]
-                contact = {"first_name": first_name, "phone": intnl_phone}
+            if not validate == "email":
+                intnl_phone = get_intnl_phone(serializer)
+                if not intnl_phone:
+                    skipped_lines.append(i+1)
+                    continue
+                if validate == "personalized":
+                    first_name = serializer.validated_data["first_name"]
+                    contact = {"first_name": first_name, "phone": intnl_phone}
+                else:
+                    contact = intnl_phone
             else:
-                contact = intnl_phone
-
+                contact = serializer.validated_data["email"]
             recepients.append(contact)
         return (recepients, skipped_lines)

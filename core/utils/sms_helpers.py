@@ -60,6 +60,16 @@ def update_sms_count(sms_count, company, add=False):
     company.save()
     return company.sms_count
 
+def update_email_count(email_count, company, add=False):
+    if add:
+        company.email_count += email_count
+    else:
+        if email_count > company.email_count:
+            raise ValidationError({"detail": "You do not have enough emails remaining to send this messages, please top up"})
+        company.email_count -= email_count
+    company.save()
+    return company.email_count
+
 
 def calculate_recharge_sms(queryset, amount):
     """

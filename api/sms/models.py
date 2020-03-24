@@ -23,6 +23,25 @@ class SMSRequest(AbstractBaseModel):
 
     active_objects = ActiveObjectsQuerySet.as_manager()
 
+class EmailRequest(AbstractBaseModel):
+    company = models.ForeignKey(
+        "authentication.Company", on_delete=models.CASCADE,related_name="email_requests"
+    )
+    message = models.CharField(max_length=800)
+    group = models.ForeignKey(
+        "EmailGroup",
+        related_name="email_requests",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+    )
+    recepients = ArrayField(
+        base_field=models.EmailField(), size=5, blank=True, null=True
+    )
+    email_count = models.IntegerField(default=0)
+
+    active_objects = ActiveObjectsQuerySet.as_manager()
+
 
 class SMSGroup(models.Model):
     company = models.ForeignKey(
@@ -31,6 +50,18 @@ class SMSGroup(models.Model):
     name = models.CharField(max_length=60)
     description = models.CharField(max_length=200, null=True)
     members = models.ManyToManyField("GroupMember", related_name="groups", blank=True)
+
+    class Meta:
+        unique_together = ('company', 'name',)
+
+
+class EmailGroup(models.Model):
+    company = models.ForeignKey(
+        "authentication.Company", on_delete=models.CASCADE,related_name="company_email_groups"
+    )
+    name = models.CharField(max_length=60)
+    description = models.CharField(max_length=200, null=True)
+    members = models.ManyToManyField("EmailGroupMember", related_name="email_groups", blank=True)
 
     class Meta:
         unique_together = ('company', 'name',)
@@ -56,3 +87,19 @@ class GroupMember(AbstractBaseModel):
 
     class Meta:
         unique_together = ('company', 'phone',)
+
+
+class EmailGroupMember(AbstractBaseModel):
+    company = models.ForeignKey(
+        "authentication.Company", on_delete=models.CASCADE,related_name="company_email_group_members"
+    )
+    first_name = models.CharField(max_length=30, null=True)
+    last_name = models.CharField(max_length=30, null=True)
+    email = models.EmailField()
+
+    active_objects = ActiveObjectsQuerySet.as_manager()
+    objects = models.Manager()
+
+    class Meta:
+        unique_together = ('company', 'email',)
+

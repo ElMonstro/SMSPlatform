@@ -244,6 +244,7 @@ class User(AbstractBaseModel, AbstractBaseUser, PermissionsMixin):
         return super().clean()
 
 class AddStaffModel(models.Model):
+
     """Stores emails and token"""
     email = models.EmailField()
     token = models.CharField(unique=True, max_length=300)
@@ -254,6 +255,7 @@ class AddStaffModel(models.Model):
 class Company(models.Model):
     name = models.CharField(unique=True, max_length=50)
     sms_count = models.IntegerField(default=5)
+    email_count = models.IntegerField(default=5)
     county = models.CharField(max_length=50)
     is_reseller = models.BooleanField(default=False)
     parent = models.ForeignKey("Company", on_delete=models.SET_NULL,
