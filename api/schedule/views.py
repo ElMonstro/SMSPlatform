@@ -9,7 +9,9 @@ from . import serializers, models
 
 class CreateScheduleView(generics.GenericAPIView):
     """Register SMS schedule"""
-
+    serializer_class = serializers.PeriodicTaskSerializer
+    queryset = models.ScheduleRegistry.objects.all()
+    
     def post(self, request, *args, **kwargs):
         serializer = serializers.CrontabScehduleSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)

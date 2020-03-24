@@ -1,0 +1,20 @@
+[
+    {
+      "model": "django_celery_beat.intervalschedule",
+      "pk": 1,
+      "fields": {
+        "every": 59,
+        "period": "minutes"
+      }
+    },
+    {
+      "model": "django_celery_beat.periodictask",
+      "pk": 1,
+      "fields": {
+        "interval": 1,
+        "name": "get_access_token",
+        "task": "get_access_token",
+        "date_changed": "2020-03-20"
+      }
+    }
+  ]
