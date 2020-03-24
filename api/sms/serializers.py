@@ -99,7 +99,9 @@ class GroupMemberSerializer(serializers.ModelSerializer):
     group = serializers.PrimaryKeyRelatedField(queryset=models.SMSGroup.objects.all(), write_only=True)
 
     def get_fields(self, *args, **kwargs):
-        fields = super().get_fields(*args, **kwargs)  
+        fields = super().get_fields(*args, **kwargs)
+        if self.context["request"].user.is_anonymous:
+            return fields
         company = self.context["request"].user.company
         fields["group"].queryset = models.SMSGroup.objects.filter(company=company)
         return fields

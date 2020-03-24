@@ -2,7 +2,7 @@ from django.db.utils import IntegrityError
 from django.db import models
 from rest_framework.exceptions import ValidationError
 import pandas as pd
-from regex import regex as re
+import re
 
 
 def get_errored_integrity_field(exc):

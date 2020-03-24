@@ -99,12 +99,3 @@ def validate_mpesa_callback_request(callback_transaction_time, recharge_request_
     time_difference = callback_transaction_time - recharge_request_time
     if time_difference > timedelta(seconds=60) or time_difference < timedelta(seconds=0):
         raise_validation_error({"detail": "Invalid request"}) 
-
-def setup_get_mpesa_token_cron_job():
-    schedule, _ = IntervalSchedule.objects.get_or_create(every=59, period=IntervalSchedule.MINUTES)
-    PeriodicTask.objects.get_or_create(
-        interval=schedule,
-        name="get_access_token",
-        task="get_access_token",
-    )
-    
