@@ -1,6 +1,9 @@
+from itertools import chain
+
 from django.shortcuts import get_object_or_404
 from django.db.utils import IntegrityError
 from django.core.mail import send_mail
+from django.conf import settings
 
 from rest_framework.exceptions import ValidationError
 from rest_framework import serializers
@@ -22,47 +25,88 @@ class SMSRequestSerializer(serializers.ModelSerializer):
     recepients = serializers.ListField(
         required=False, validators=[validate_phone_list], child=serializers.CharField()
     )
+    groups = serializers.ListField(child=serializers.PrimaryKeyRelatedField(queryset=models.SMSGroup.objects.all()), write_only=True)
+
+    def get_fields(self, *args, **kwargs):
+        fields = super().get_fields(*args, **kwargs)  
+        company = self.context["request"].user.company
+        medium = self.context["request"].query_params.get("medium")
+        model_mapping = {
+            None: models.SMSGroup,
+            'email': models.EmailGroup
+        }
+        fields["groups"].child.queryset = model_mapping[medium].objects.filter(company=company)
+        return fields
+
 
     def is_valid(self, raise_exception):
         recepients = self.initial_data.get("recepients")
-        group = self.initial_data.get("group")
-        if not recepients and not group:
+        groups = self.initial_data.get("groups")
+        if not recepients and not groups:
             raise ValidationError(
                {"detail": "A receipient group id or a recepient phone number list must be provided"}
-            )
-        if recepients and group:
-            raise ValidationError(
-               {"detail": "Either send group id or receipient list not both"}
             )
         return super().is_valid(raise_exception)
 
     def create(self, validated_data):
-        receipients = validated_data.get("recepients")
-        group = validated_data.get("group")
-
-        if group and not group.members.all():
-            raise ValidationError(
-               {"detail": "There are no members in the specified group"}
-            )
-
-        if group:
-            receipients = group.members.all().values_list("phone", flat=True)
-            receipients = list(receipients)
-        else:
-            validated_data["recepients"] = receipients = list(set(receipients))
-
+        recepients = self.get_receipients(validated_data)
+        validated_data["recepients"] = recepients
         company = self.context["request"].user.company
-        sms_count = count_sms(validated_data["message"], receipients)
+        sms_count = count_sms(validated_data["message"], recepients)
         update_sms_count(sms_count, company)
-        send_sms(validated_data["message"], receipients)
+        send_sms(validated_data["message"], recepients)
         validated_data["sms_count"] = sms_count
-        return super().create(validated_data)
+        return self.save_request(validated_data, super().create)
+
+    def save_request(self, validated_data, save):
+        groups = validated_data.pop("groups", [])
+        instance = save(self, validated_data)
+        instance.groups.add(*groups)
+        instance.save()
+        return instance
+
+    def get_receipients(self, validated_data):
+        recepients = validated_data.get("recepients", [])
+        groups = validated_data.get("groups")
+    
+        if groups:
+            merged_queryset = models.GroupMember.objects.none()
+            for group in groups:
+                merged_queryset = merged_queryset | group.members.all()
+            if not merged_queryset:
+                raise ValidationError(
+                {"detail": "There are no members in the specified group(s)"}
+                )
+            medium = self.context["request"].query_params.get("medium", "phone")
+
+            group_recepients = list(merged_queryset.values_list(medium, flat=True))
+            recepients = set(recepients + group_recepients)
+        
+        return list(recepients)
 
     class Meta:
         model = models.SMSRequest
-        fields = ["message", "group", "recepients"]
+        fields = ["message", "groups", "recepients"]
         extra_kwargs = {'company': {'read_only':True}}
 
+class EmailRequestSerializer(SMSRequestSerializer):
+
+    def create(self, validated_data):
+        recepients = self.get_receipients(validated_data)
+        validated_data["recepients"] = recepients
+        subject = validated_data["subject"]
+        message = validated_data["message"]
+        company = self.context["request"].user.company
+        email_count = len(recepients)
+        validated_data["email_count"] = email_count
+        from_email = settings.COMPANY_EMAIL
+        send_mail(subject, message, from_email, recepients)
+        return self.save_request(validated_data, serializers.ModelSerializer.create)
+        
+    class Meta:
+        model = models.EmailRequest
+        fields = ["message", "subject", "groups", "recepients"]
+        extra_kwargs = {'company': {'read_only':True}}
 
 class SMSGroupSerializer(serializers.ModelSerializer):
     class Meta:
@@ -288,12 +332,11 @@ class CsvSmsContactUpload(serializers.Serializer):
         file = self.validated_data["file"]
         message = self.validated_data["message"]
         subject = self.validated_data.get("subject")
-
         if not subject:
             raise raise_validation_error({"subject": "This field is required."})
         required_headers = ["email"]
         csv_excel_reader = CsvExcelReader(file, required_headers)
-        receipients = []
+        recepients = []
         skipped_lines = []
 
         for i, row in csv_excel_reader.data.iterrows():
@@ -304,10 +347,15 @@ class CsvSmsContactUpload(serializers.Serializer):
                 continue
 
             email = serializer.validated_data["email"]
-            receipients.append(email)
-        
-        send_mail(subject, message, receipients)
-        data = {"members": receipients}
+            recepients.append(email)
+
+        company = self.context["request"].user.company
+        email_count = len(recepients)
+        update_email_count(email_count, company)
+        models.EmailRequest(company=company, message=message, recepients=recepients, email_count=email_count, subject=subject)
+        from_email = settings.COMPANY_EMAIL
+        send_mail(subject, message, from_email, recepients)
+        data = {"recepients": recepients}
         if skipped_lines:
             data["skipped_lines"] = f"The following lines were skipped: {str(skipped_lines)[1:-1]} because of invalid or duplicate {required_headers[0]}s"
         return data
@@ -322,7 +370,6 @@ class CsvSmsContactUpload(serializers.Serializer):
         recepients = []
         skipped_lines = []
         file = self.validated_data["file"]
-        
         serializer_class, required_headers = validation_mapping[validate]
 
         csv_excel_reader = CsvExcelReader(file, required_headers)
@@ -333,17 +380,15 @@ class CsvSmsContactUpload(serializers.Serializer):
             if not is_valid:
                 skipped_lines.append(i+1)
                 continue
-            if not validate == "email":
-                intnl_phone = get_intnl_phone(serializer)
-                if not intnl_phone:
-                    skipped_lines.append(i+1)
-                    continue
-                if validate == "personalized":
-                    first_name = serializer.validated_data["first_name"]
-                    contact = {"first_name": first_name, "phone": intnl_phone}
-                else:
-                    contact = intnl_phone
+            intnl_phone = get_intnl_phone(serializer)
+            if not intnl_phone:
+                skipped_lines.append(i+1)
+                continue
+            if validate == "personalized":
+                first_name = serializer.validated_data["first_name"]
+                contact = {"first_name": first_name, "phone": intnl_phone}
             else:
-                contact = serializer.validated_data["email"]
+                contact = intnl_phone
+                
             recepients.append(contact)
         return (recepients, skipped_lines)

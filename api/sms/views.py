@@ -14,7 +14,7 @@ from core.utils.helpers import CsvExcelReader, get_errored_integrity_field
 
 
 
-class ModifiedGenericView(generics.GenericAPIView):
+class ModelSerializerMappingMixin:
 
 
     def map_serializer_to_view(self, medium, view):
@@ -27,6 +27,10 @@ class ModifiedGenericView(generics.GenericAPIView):
             'member': {
                 None: serializers.GroupMemberSerializer,
                 "email": serializers.EmailGroupMemberSerializer
+                },
+            'request': {
+                None: serializers.SMSRequestSerializer,
+                "email": serializers.EmailRequestSerializer
             }
         }
         return view_serializer_mapping[view][medium]
@@ -42,6 +46,10 @@ class ModifiedGenericView(generics.GenericAPIView):
             'member': {
                 None: models.GroupMember,
                 "email": models.EmailGroupMember
+            },
+            'request': {
+                None: models.SMSRequest,
+                "email": models.EmailRequest
             }
         }
         company = self.request.user.company
@@ -50,11 +58,16 @@ class ModifiedGenericView(generics.GenericAPIView):
     
 
 
-class SMSRequestView(generics.ListAPIView, CustomCreateAPIView):
+class SMSRequestView(generics.ListAPIView, CustomCreateAPIView, ModelSerializerMappingMixin):
     """create, list and delete sms requests """
 
-    serializer_class = serializers.SMSRequestSerializer
-    queryset = models.SMSRequest.active_objects.all()
+    def get_serializer_class(self):
+        medium = self.request.query_params.get("medium")
+        return self.map_serializer_to_view(medium, "request")
+
+    def get_queryset(self):
+        medium = self.request.query_params.get("medium")
+        return self.map_queryset_to_view(medium, "request")
 
     def delete(self, request):
         serializer = serializers.DeleteSMSRequestsSerializer(
@@ -79,7 +92,7 @@ class SingleSMSTemplateView(generics.RetrieveUpdateDestroyAPIView, CustomCreateA
     serializer_class = serializers.SMSTemplateSerializer
     queryset = models.SMSTemplate.objects.all()
 
-class GroupView(generics.ListAPIView, ModifiedGenericView, CustomCreateAPIView):
+class GroupView(generics.ListAPIView, ModelSerializerMappingMixin, CustomCreateAPIView):
     """Create or list groups"""
 
     queryset = models.SMSGroup.objects.all()
@@ -103,7 +116,7 @@ class GroupView(generics.ListAPIView, ModifiedGenericView, CustomCreateAPIView):
 
 
 
-class SingleGroupView(generics.RetrieveUpdateDestroyAPIView, ModifiedGenericView):
+class SingleGroupView(generics.RetrieveUpdateDestroyAPIView, ModelSerializerMappingMixin):
     """
     Get, delete and update a group, Patch update is used to add members while PUT 
     update is used to remove members
@@ -137,7 +150,7 @@ class SingleGroupView(generics.RetrieveUpdateDestroyAPIView, ModifiedGenericView
         serializer.save()
 
 
-class GroupMembersView(generics.ListAPIView,CustomCreateAPIView, ModifiedGenericView):
+class GroupMembersView(generics.ListAPIView,CustomCreateAPIView, ModelSerializerMappingMixin):
     """Create or list members"""
     def get_serializer_class(self):
         medium = self.request.query_params.get("medium")
@@ -149,7 +162,7 @@ class GroupMembersView(generics.ListAPIView,CustomCreateAPIView, ModifiedGeneric
 
 
 
-class SingleGroupMembersView(generics.RetrieveUpdateDestroyAPIView, ModifiedGenericView):
+class SingleGroupMembersView(generics.RetrieveUpdateDestroyAPIView, ModelSerializerMappingMixin):
     """Update, delete and get actions on members"""
 
     def get_serializer_class(self):
@@ -182,10 +195,8 @@ class CsvSmsView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         if self.request.query_params.get("sms") == "personalized":
             data = serializer.send_personalized_sms()
-        
         elif self.request.query_params.get("medium") == "email":
-            data = serializer.send_email()
-        
+            data = serializer.send_email() 
         else:
             data = serializer.send_sms()
         return Response(data, status.HTTP_201_CREATED)

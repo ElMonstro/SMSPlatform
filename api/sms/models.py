@@ -9,38 +9,28 @@ class SMSRequest(AbstractBaseModel):
         "authentication.Company", on_delete=models.CASCADE,related_name="sms_requests"
     )
     message = models.CharField(max_length=800)
-    group = models.ForeignKey(
-        "SMSGroup",
-        related_name="sms_requests",
-        on_delete=models.SET_NULL,
-        blank=True,
-        null=True,
-    )
+    groups =models.ManyToManyField("SMSGroup", related_name="sms_groups", blank=True)
     recepients = ArrayField(
-        base_field=models.CharField(max_length=20), size=5, blank=True, null=True
+        base_field=models.CharField(max_length=20), blank=True, null=True
     )
     sms_count = models.IntegerField(default=0)
 
-    active_objects = ActiveObjectsQuerySet.as_manager()
+    objects = ActiveObjectsQuerySet.as_manager()
+
 
 class EmailRequest(AbstractBaseModel):
     company = models.ForeignKey(
         "authentication.Company", on_delete=models.CASCADE,related_name="email_requests"
     )
     message = models.CharField(max_length=800)
-    group = models.ForeignKey(
-        "EmailGroup",
-        related_name="email_requests",
-        on_delete=models.SET_NULL,
-        blank=True,
-        null=True,
-    )
+    groups = models.ManyToManyField("EmailGroup", related_name="email_groups", blank=True)
     recepients = ArrayField(
-        base_field=models.EmailField(), size=5, blank=True, null=True
+        base_field=models.EmailField(), blank=True, null=True
     )
     email_count = models.IntegerField(default=0)
+    subject = models.CharField(max_length=800)
 
-    active_objects = ActiveObjectsQuerySet.as_manager()
+    objects = ActiveObjectsQuerySet.as_manager()
 
 
 class SMSGroup(models.Model):

@@ -55,7 +55,7 @@ def update_sms_count(sms_count, company, add=False):
         company.sms_count += sms_count
     else:
         if sms_count > company.sms_count:
-            raise ValidationError({"detail": "You do not have enough SMS remaining to send this messages, please top up"})
+            raise ValidationError({"detail": f"You do not have enough SMS balance to send this messages, please top up. Your balance is {company.sms_count}"})
         company.sms_count -= sms_count
     company.save()
     return company.sms_count
@@ -65,7 +65,7 @@ def update_email_count(email_count, company, add=False):
         company.email_count += email_count
     else:
         if email_count > company.email_count:
-            raise ValidationError({"detail": "You do not have enough emails remaining to send this messages, please top up"})
+            raise ValidationError({"detail": f"You do not have enough emails balance to send this messages, please top up. Your balance is {company.email_count}"})
         company.email_count -= email_count
     company.save()
     return company.email_count

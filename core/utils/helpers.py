@@ -66,9 +66,9 @@ class CsvExcelReader:
         self.validate_headers()
 
     def read_csv(self):
-        self.data = pd.read_csv(self.file).drop_duplicates(subset=self.required_headers, keep="first")
+        self.data = pd.read_csv(self.file)
     def read_excel(self):
-        self.data = pd.read_excel(self.file).drop_duplicates(subset=self.required_headers, keep="first")
+        self.data = pd.read_excel(self.file)
     
     def read_file(self):
         read_file = {
@@ -87,6 +87,7 @@ class CsvExcelReader:
             raise ValidationError({"detail": "The file does not have all the required column headers," \
                 + f"make sure it has the following headers: {str(self.required_headers)[1:-1]} "})
 
+        self.data = self.data.drop_duplicates(subset=self.required_headers, keep="first")
 
 def add_country_code(number):
     """
