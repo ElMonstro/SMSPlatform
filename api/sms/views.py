@@ -126,7 +126,9 @@ class SingleGroupView(generics.RetrieveUpdateDestroyAPIView, ModelSerializerMapp
 
     def get_serializer_class(self):
         medium = self.request.query_params.get("medium")
-        return self.map_serializer_to_view(medium, "group")
+        if medium == "email":
+            return serializers.SingleEmailGroupSerializer
+        return serializers.SingleSMSGroupSerializer
 
     def get_queryset(self):
         medium = self.request.query_params.get("medium")

@@ -34,7 +34,7 @@ class RegistrationView(generics.CreateAPIView):
         payload = response.data.copy()
         payload[
             "message"
-        ] = "Account created successfully. Please confirm from your email."
+        ] = "Account created successfully. Please verify from your email."
         if self.request.query_params.get("user") == "staff":
             payload["message"] =  "Account created successfully. Go ahead and login"
             
@@ -74,20 +74,18 @@ class InviteClient(APIView):
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data["email"]
         company_name = request.user.company.name
-        payload = {
-            "company_name": company_name
-        }
-        token = encode(payload, settings.SECRET_KEY)
         subject = f"{company_name} registration link"
-        message = f"Click this link to register to {company_name}: {settings.FRONTEND_LINK}resellers/{token}"
+        message = f"Click this link to register to {company_name}: {settings.FRONTEND_LINK}resellers/{company_name}"
         send_mail(subject, message, company_name, [email])
         return Response({"message": f"Success, invitation link sent to client email ({email})"})
 
 
 class VerifyUser(APIView):
 
+    permission_classes = []
+
     def post(self, request, *args, **kwargs):
         serializer = serializers.VerifyUserSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        Response({"detail": "Success, user verified"})
+        return Response({"detail": "Success, user verified"})
         

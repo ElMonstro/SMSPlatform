@@ -1,5 +1,3 @@
-from itertools import chain
-
 from django.shortcuts import get_object_or_404
 from django.db.utils import IntegrityError
 from django.core.mail import send_mail
@@ -180,12 +178,23 @@ class EmailGroupMemberSerializer(GroupMemberSerializer):
 
 
 class SingleSMSGroupSerializer(serializers.ModelSerializer):
-    member_list = GroupMemberSerializer(many=True,source="members", read_only=True)
+
+    members = GroupMemberSerializer(many=True, read_only=True)
+
     class Meta:
         model = models.SMSGroup
         fields = "__all__"
-        extra_kwargs = {'company': {'read_only':True},
-        "members": {"write_only": True}}
+        extra_kwargs = {'company': {'read_only':True}}
+
+class SingleEmailGroupSerializer(serializers.ModelSerializer):
+
+    members = EmailGroupMemberSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = models.EmailGroup
+        fields = "__all__"
+        extra_kwargs = {'company': {'read_only':True}}
+
 
 class GroupMemberUploadSerializer(serializers.Serializer):
     phone = serializers.CharField()

@@ -96,7 +96,7 @@ class VerifyUserSerializer(serializers.Serializer):
 
     token = serializers.CharField(required=True)
 
-    def is_valid(raise_exception):
+    def is_valid(self, raise_exception=False):
         super().is_valid(raise_exception)
         token = self.validated_data["token"]
         try:
@@ -148,9 +148,7 @@ class ResellerClientSerializer(RegistrationSerializer):
 
     def validate(self, data):
         super().validate(data)
-        token = self.context['request'].query_params.get("parent_company")
-        payload = decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-        company_name = payload["company_name"]
+        company_name = self.context['request'].query_params.get("parent_company")
         company = get_object_or_404(Company, name=company_name)
         if not company.is_reseller:
             raise ValidationError({"detail": "Company specified in query params is not a reseller"})

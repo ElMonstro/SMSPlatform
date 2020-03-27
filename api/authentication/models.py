@@ -1,4 +1,5 @@
 from jwt import encode, decode, DecodeError
+from datetime import datetime
 
 from django.db import models
 from django.contrib.auth import get_user_model, password_validation
@@ -73,7 +74,7 @@ class UserManager(BaseUserManager):
         try:
             company = Company.objects.create(name=name, county=county, is_reseller=is_reseller, parent=parent)
         except IntegrityError:
-            raise ValidationError({"name": "Company already exists with name"}) 
+            raise ValidationError({"company": "Company already exists with name"}) 
         return company
 
     def create_superuser(
@@ -283,7 +284,7 @@ def send_activation_email(sender, instance, **kwargs):
             "date": datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
              }
     token = encode(payload, settings.SECRET_KEY)
-    message = settings.FRONTEND_LINK + 'verify/' + token
+    message = settings.FRONTEND_LINK + 'verify/' + token.decode("utf-8")
     email_from = settings.COMPANY_EMAIL
     receipient_list = [instance.email]
     send_mail( subject, message, email_from, receipient_list )
