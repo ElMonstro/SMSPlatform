@@ -92,6 +92,25 @@ class AddStaffSerializer(serializers.ModelSerializer):
         fields = ["email"]
         extra_kwargs = {'token': {'read_only':True}}
 
+class VerifyUserSerializer(serializers.Serializer):
+
+    token = serializers.CharField(required=True)
+
+    def is_valid(self, raise_exception=False):
+        super().is_valid(raise_exception)
+        token = self.validated_data["token"]
+        try:
+            payload = decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        except DecodeError:
+            raise ValidationError({"detail": "Invalid token"})
+        user = get_object_or_404(User, email=payload["email"])
+        user.is_verified = True
+        user.save()
+
+
+class InviteClientSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
 
 class StaffRegistrationSerializer(RegistrationSerializer):
 

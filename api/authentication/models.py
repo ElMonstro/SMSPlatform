@@ -1,3 +1,6 @@
+from jwt import encode, decode, DecodeError
+from datetime import datetime
+
 from django.db import models
 from django.contrib.auth import get_user_model, password_validation
 from django.db.models.signals import post_save
@@ -71,7 +74,7 @@ class UserManager(BaseUserManager):
         try:
             company = Company.objects.create(name=name, county=county, is_reseller=is_reseller, parent=parent)
         except IntegrityError:
-            raise ValidationError({"name": "Company already exists with name"}) 
+            raise ValidationError({"company": "Company already exists with name"}) 
         return company
 
     def create_superuser(
@@ -244,6 +247,7 @@ class User(AbstractBaseModel, AbstractBaseUser, PermissionsMixin):
         return super().clean()
 
 class AddStaffModel(models.Model):
+
     """Stores emails and token"""
     email = models.EmailField()
     token = models.CharField(unique=True, max_length=300)
@@ -254,6 +258,7 @@ class AddStaffModel(models.Model):
 class Company(models.Model):
     name = models.CharField(unique=True, max_length=50)
     sms_count = models.IntegerField(default=5)
+    email_count = models.IntegerField(default=5)
     county = models.CharField(max_length=50)
     is_reseller = models.BooleanField(default=False)
     parent = models.ForeignKey("Company", on_delete=models.SET_NULL,
@@ -268,5 +273,18 @@ def send_staff_registry_email(sender, instance, **kwargs):
     subject = "Jambo SMS Staff registration link"
     message = settings.FRONTEND_LINK + instance.token.decode("utf-8")
     email_from = settings.EMAIL_HOST_USER
+    receipient_list = [instance.email]
+    send_mail( subject, message, email_from, receipient_list )
+
+@receiver(post_save, sender=User, dispatch_uid="create_user_varification_token")
+def send_activation_email(sender, instance, **kwargs):
+    subject = "Jambo SMS email verification link"
+    payload = { 
+            "email": instance.email,
+            "date": datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
+             }
+    token = encode(payload, settings.SECRET_KEY)
+    message = settings.FRONTEND_LINK + 'verify/' + token.decode("utf-8")
+    email_from = settings.COMPANY_EMAIL
     receipient_list = [instance.email]
     send_mail( subject, message, email_from, receipient_list )

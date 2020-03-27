@@ -99,16 +99,20 @@ def validate_excel_csv(file):
         raise ValidationError("File type invalid, please upload csv or excel files")
     return True
 
-def validate_csv_row(serializer):
-    try:
-        serializer.is_valid(raise_exception=True)
-    except ValidationError:
-        return
+
+def get_intnl_phone(serializer):
     try:
         intnl_phone = add_country_code(serializer.validated_data["phone"])
     except ValidationError:
         return
     return intnl_phone
+
+def validate_csv_row(serializer):
+    try:
+        serializer.is_valid(raise_exception=True)
+    except ValidationError:
+        return 
+    return get_intnl_phone(serializer)
 
 def validate_first_name_column(first_name):
     if first_name == 'nan':
