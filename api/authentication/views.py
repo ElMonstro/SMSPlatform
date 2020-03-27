@@ -1,5 +1,11 @@
+from jwt import encode, decode
+
+from django.core.mail import send_mail
+from django.conf import settings
+
 from rest_framework.response import Response
 from rest_framework import status, generics
+from rest_framework.views import APIView
 
 from . import serializers
 from .models import AddStaffModel, Company
@@ -60,3 +66,28 @@ class GetCompaniesView(generics.ListAPIView):
     serializer_class = serializers.CompanySerializer
     queryset = Company.objects.all()
 
+
+class InviteClient(APIView):
+    
+    def post(self, request, *args, **kwargs):
+        serializer = serializers.InviteClientSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data["email"]
+        company_name = request.user.company.name
+        payload = {
+            "company_name": company_name
+        }
+        token = encode(payload, settings.SECRET_KEY)
+        subject = f"{company_name} registration link"
+        message = f"Click this link to register to {company_name}: {settings.FRONTEND_LINK}resellers/{token}"
+        send_mail(subject, message, company_name, [email])
+        return Response({"message": f"Success, invitation link sent to client email ({email})"})
+
+
+class VerifyUser(APIView):
+
+    def post(self, request, *args, **kwargs):
+        serializer = serializers.VerifyUserSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        Response({"detail": "Success, user verified"})
+        

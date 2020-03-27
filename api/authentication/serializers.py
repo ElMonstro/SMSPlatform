@@ -92,6 +92,25 @@ class AddStaffSerializer(serializers.ModelSerializer):
         fields = ["email"]
         extra_kwargs = {'token': {'read_only':True}}
 
+class VerifyUserSerializer(serializers.Serializer):
+
+    token = serializers.CharField(required=True)
+
+    def is_valid(raise_exception):
+        super().is_valid(raise_exception)
+        token = self.validated_data["token"]
+        try:
+            payload = decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        except DecodeError:
+            raise ValidationError({"detail": "Invalid token"})
+        user = get_object_or_404(User, email=payload["email"])
+        user.is_verified = True
+        user.save()
+
+
+class InviteClientSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
 
 class StaffRegistrationSerializer(RegistrationSerializer):
 
@@ -129,7 +148,9 @@ class ResellerClientSerializer(RegistrationSerializer):
 
     def validate(self, data):
         super().validate(data)
-        company_name = self.context['request'].query_params.get("parent_company")
+        token = self.context['request'].query_params.get("parent_company")
+        payload = decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        company_name = payload["company_name"]
         company = get_object_or_404(Company, name=company_name)
         if not company.is_reseller:
             raise ValidationError({"detail": "Company specified in query params is not a reseller"})

@@ -1,3 +1,5 @@
+from jwt import encode, decode, DecodeError
+
 from django.db import models
 from django.contrib.auth import get_user_model, password_validation
 from django.db.models.signals import post_save
@@ -270,5 +272,18 @@ def send_staff_registry_email(sender, instance, **kwargs):
     subject = "Jambo SMS Staff registration link"
     message = settings.FRONTEND_LINK + instance.token.decode("utf-8")
     email_from = settings.EMAIL_HOST_USER
+    receipient_list = [instance.email]
+    send_mail( subject, message, email_from, receipient_list )
+
+@receiver(post_save, sender=User, dispatch_uid="create_user_varification_token")
+def send_activation_email(sender, instance, **kwargs):
+    subject = "Jambo SMS email verification link"
+    payload = { 
+            "email": instance.email,
+            "date": datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
+             }
+    token = encode(payload, settings.SECRET_KEY)
+    message = settings.FRONTEND_LINK + 'verify/' + token
+    email_from = settings.COMPANY_EMAIL
     receipient_list = [instance.email]
     send_mail( subject, message, email_from, receipient_list )
