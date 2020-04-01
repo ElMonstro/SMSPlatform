@@ -26,7 +26,9 @@ class SMSRequestSerializer(serializers.ModelSerializer):
     groups = serializers.ListField(child=serializers.PrimaryKeyRelatedField(queryset=models.SMSGroup.objects.all()), write_only=True)
 
     def get_fields(self, *args, **kwargs):
-        fields = super().get_fields(*args, **kwargs)  
+        fields = super().get_fields(*args, **kwargs)
+        if self.context["request"].user.is_anonymous:
+            return fields
         company = self.context["request"].user.company
         medium = self.context["request"].query_params.get("medium")
         model_mapping = {
@@ -223,7 +225,9 @@ class CsvMembersUploadSerializer(serializers.Serializer):
     group = serializers.PrimaryKeyRelatedField(queryset=models.SMSGroup.objects.all())
 
     def get_fields(self, *args, **kwargs):
-        fields = super().get_fields(*args, **kwargs)  
+        fields = super().get_fields(*args, **kwargs)
+        if self.context["request"].user.is_anonymous:
+            return fields  
         company = self.context["request"].user.company
         medium = self.context["request"].query_params.get("medium")
         model_mapping = {
