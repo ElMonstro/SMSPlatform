@@ -43,9 +43,10 @@ class RetrieveUpdateScheduleView(generics.RetrieveUpdateDestroyAPIView):
         return serializer_class
 
     def update(self, request, *args, **kwargs):
+        
         response = super().update(request, *args, **kwargs)
-
-        if self.request.query_params.get("update") == "time":
+        
+        if self.request.query_params.get("update") == "time":  
             pk = kwargs['pk']
             instance = models.PeriodicTask.objects.get(pk=pk)
             serializer = serializers.PeriodicTaskSerializer(instance)

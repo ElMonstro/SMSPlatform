@@ -62,11 +62,11 @@ class SMSRequestView(generics.ListAPIView, CustomCreateAPIView, ModelSerializerM
     """create, list and delete sms requests """
 
     def get_serializer_class(self):
-        medium = self.request.query_params.get("medium")
+        medium = self.request.query_params.get("medium", None)
         return self.map_serializer_to_view(medium, "request")
 
     def get_queryset(self):
-        medium = self.request.query_params.get("medium")
+        medium = self.request.query_params.get("medium", None)
         return self.map_queryset_to_view(medium, "request")
 
     def delete(self, request):
@@ -107,11 +107,11 @@ class GroupView(generics.ListAPIView, ModelSerializerMappingMixin, CustomCreateA
             raise ValidationError({field: f'This {field} already exists'})
 
     def get_serializer_class(self):
-        medium = self.request.query_params.get("medium")
+        medium = self.request.query_params.get("medium", None)
         return self.map_serializer_to_view(medium, "group")
 
     def get_queryset(self):
-        medium = self.request.query_params.get("medium")
+        medium = self.request.query_params.get("medium", None)
         return self.map_queryset_to_view(medium, "group")
 
 
@@ -125,13 +125,13 @@ class SingleGroupView(generics.RetrieveUpdateDestroyAPIView, ModelSerializerMapp
     permission_classes = [IsComapanyOwned]
 
     def get_serializer_class(self):
-        medium = self.request.query_params.get("medium")
+        medium = self.request.query_params.get("medium", None)
         if medium == "email":
             return serializers.SingleEmailGroupSerializer
         return serializers.SingleSMSGroupSerializer
 
     def get_queryset(self):
-        medium = self.request.query_params.get("medium")
+        medium = self.request.query_params.get("medium", None)
         return self.map_queryset_to_view(medium, "group")
 
 
@@ -155,7 +155,7 @@ class SingleGroupView(generics.RetrieveUpdateDestroyAPIView, ModelSerializerMapp
 class GroupMembersView(generics.ListAPIView,CustomCreateAPIView, ModelSerializerMappingMixin):
     """Create or list members"""
     def get_serializer_class(self):
-        medium = self.request.query_params.get("medium")
+        medium = self.request.query_params.get("medium", None)
         return self.map_serializer_to_view(medium, "member")
 
     def get_queryset(self):
@@ -168,11 +168,11 @@ class SingleGroupMembersView(generics.RetrieveUpdateDestroyAPIView, ModelSeriali
     """Update, delete and get actions on members"""
 
     def get_serializer_class(self):
-        medium = self.request.query_params.get("medium")
+        medium = self.request.query_params.get("medium", None)
         return self.map_serializer_to_view(medium, "group")
 
     def get_queryset(self):
-        medium = self.request.query_params.get("medium")
+        medium = self.request.query_params.get("medium", None)
         return self.map_queryset_to_view(medium, "group")
 
 
