@@ -23,7 +23,7 @@ class SMSRequestSerializer(serializers.ModelSerializer):
     recepients = serializers.ListField(
         required=False, validators=[validate_phone_list], child=serializers.CharField()
     )
-    groups = serializers.ListField(child=serializers.PrimaryKeyRelatedField(queryset=models.SMSGroup.objects.all()), write_only=True)
+    groups = serializers.ListField(child=serializers.PrimaryKeyRelatedField(queryset=models.SMSGroup.objects.all()), write_only=True, required=False)
 
     def get_fields(self, *args, **kwargs):
         fields = super().get_fields(*args, **kwargs)
@@ -135,14 +135,13 @@ class SMSTemplateSerializer(serializers.ModelSerializer):
 
 class DeleteSMSRequestsSerializer(serializers.Serializer):
 
-    sms_requests = serializers.ListSerializer(
-        child=serializers.IntegerField(required=True)
-    )
-
+    sms_requests = serializers.ListField(child=serializers.PrimaryKeyRelatedField(queryset=models.SMSGroup.objects.all()), write_only=True)
+    
     def delete(self):
         sms_requests = self.data.get("sms_requests")
         user = self.context["request"].user
         if sms_requests:
+            
             validate_primary_keys(sms_requests)
             for pk in sms_requests:
                 soft_delete_owned_object(models.SMSRequest, user, pk)

@@ -16,7 +16,7 @@ class CreateScheduleView(generics.GenericAPIView):
         serializer = serializers.CrontabScehduleSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         period_task_instance = serializer.save()
-        period_task_serializer  = serializers.PeriodicTaskSerializer(instance=period_task_instance)
+        period_task_serializer  = serializers.PeriodicTaskSerializer(instance=period_task_instance, context={"request": request})
         return Response(data=period_task_serializer.data, status=status.HTTP_201_CREATED)
 
     def get(self, request, *args, **kwargs):

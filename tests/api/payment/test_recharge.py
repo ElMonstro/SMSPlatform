@@ -30,8 +30,8 @@ class TestRecharge(BaseTest):
 
 class TestMpesaCallBack(BaseTest):
     
-
-    def test_receive_valid_mpesa_callback_request_succeeds(self):
+    @patch("api.payment.serializers.send_sms")
+    def test_receive_valid_mpesa_callback_request_succeeds(self, _):
         """Test that a valid mpesa callback will pass"""
         models.RechargeRequest(company=self.user.company, customer_number="254726406930", checkout_request_id="fwer544tgre", response_code=0).save()
         models.RechargePlan(name="ting", rate=0.50, price_limit=5).save()
@@ -79,8 +79,8 @@ class TestRecharPlanViews(BaseTest):
 
 class TestGetPaymentsView(BaseTest):
 
-
-    def test_get_payments_request_succeeds(self):
+    @patch("api.payment.serializers.send_sms")
+    def test_get_payments_request_succeeds(self, _):
             """Test that a valid mpesa callback will pass"""
             models.RechargeRequest(company=self.user.company, customer_number="254726406930", checkout_request_id="fwer544tgre", response_code=0).save()
             models.RechargePlan(name="ting", rate=0.50, price_limit=5).save()

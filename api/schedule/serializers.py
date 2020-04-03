@@ -96,9 +96,9 @@ class UpdateScheduleTimeSerializer(serializers.ModelSerializer):
 
 class PeriodicTaskSerializer(serializers.ModelSerializer):
 
-    group = serializers.PrimaryKeyRelatedField(queryset=SMSGroup.objects.all())
-    message = serializers.CharField()
-    subject = serializers.CharField(required=False)
+    group = serializers.PrimaryKeyRelatedField(queryset=SMSGroup.objects.all(), write_only=True)
+    message = serializers.CharField(write_only=True)
+    subject = serializers.CharField(required=False, write_only=True)
     crontab = UpdateScheduleTimeSerializer(read_only=True)
 
     def get_fields(self, *args, **kwargs):
@@ -114,7 +114,6 @@ class PeriodicTaskSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         group = validated_data.pop("group", None)
-
         medium = self.context["request"].query_params.get("medium", "phone")
 
         receipients = None

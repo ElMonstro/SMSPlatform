@@ -3,14 +3,14 @@ from rest_framework import status
 from rest_framework.test import force_authenticate
 
 from .base_tests import BaseTest
-from api.sms import views
+from api.sms import views, models
 from . import dummy_data
 
 
 class SMSRequestViewsTest(BaseTest):
     """Test SMS request creation list and deletion"""
     @patch("api.sms.serializers.send_sms")
-    def test_create_sms_request_creation_succeeds(self, _):
+    def test_sms_request_creation_succeeds(self, _):
         """Test that sms creation with correct data will be successful"""
         request = self.request_factory.post(self.create_list_sms_url, dummy_data.valid_sms_data)
         force_authenticate(request, self.user)
@@ -25,13 +25,18 @@ class SMSRequestViewsTest(BaseTest):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data['detail'], "A receipient group id or a recepient phone number list must be provided")
 
-    def test_create_sms_request_fails_with_both_group_or_recepients_fails(self):
-        """Test that sms creation with bothc group or receipient will fail"""
+    @patch("api.sms.serializers.send_sms")
+    def test_create_sms_request_with_both_group_or_recepients_succeeds(self, _):
+        """Test that sms creation with both group or receipient will succeed"""
+        dummy_data.data_with_both_recepient_or_group["groups"] = [self.group_id]
         request = self.request_factory.post(self.create_list_sms_url, dummy_data.data_with_both_recepient_or_group)
         force_authenticate(request, self.user)
+        instance = models.GroupMember(phone=self.user.phone, company=self.user.company)
+        instance.save()
+        self.group_instance.members.add(instance)
+        self.group_instance.save()
         response = views.SMSRequestView.as_view()(request)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data['detail'], "Either send group id or receipient list not both")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     @patch("api.sms.serializers.send_sms")
     def test_get_sms_requests_succeeds(self, _):

@@ -42,7 +42,7 @@ class UserRegistrationTest(BaseTest):
         response = self.client.post(self.registration_url, self.new_user, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(
-            response.data["name"], "Company already exists with name"
+            response.data["company"], "Company already exists with name"
         )
 
     def test_user_should_not_register_with_a_weak_password(self):

@@ -51,7 +51,7 @@ class TestCsvExcel(UploadBasetest):
 
     @patch("api.sms.serializers.send_sms")
     def test_csv_upload_personalized_sms_succeeds(self, _):
-        """Test that sms can be sent d from correct csv data will be successful"""
+        """Test that sms sent from correct csv data will be successful"""
         file, headers = self.create_upload_file('csv.csv')
         data = {
             "file": file,
@@ -64,8 +64,9 @@ class TestCsvExcel(UploadBasetest):
         response = views.CsvSmsView.as_view()(request)
         self.assertTrue(response.data["recepients"][0])
 
+    @patch("api.sms.serializers.send_personalized_sms")
     @patch("api.sms.serializers.send_sms")
-    def test_csv_upload_personalized_sms_fails_with_no_greeting_text (self, _):
+    def test_csv_upload_personalized_sms_fails_with_no_greeting_text (self, _, __):
         """Test that sms can be sent correct csv data will fail"""
         file, headers = self.create_upload_file('csv.csv')
         data = {
