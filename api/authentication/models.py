@@ -1,6 +1,8 @@
 from jwt import encode, decode, DecodeError
 from datetime import datetime
 
+from faker import Faker
+
 from django.db import models
 from django.contrib.auth import get_user_model, password_validation
 from django.db.models.signals import post_save
@@ -71,10 +73,7 @@ class UserManager(BaseUserManager):
         return Company.objects.get(name=name)
 
     def create_company(self, name=None, county=None, is_reseller=None, parent=None):
-        try:
-            company = Company.objects.create(name=name, county=county, is_reseller=is_reseller, parent=parent)
-        except IntegrityError:
-            raise ValidationError({"company": "Company already exists with name"}) 
+        company = Company.objects.create(name=name, county=county, is_reseller=is_reseller, parent=parent)
         return company
 
     def create_superuser(
@@ -101,7 +100,7 @@ class UserManager(BaseUserManager):
             is_active=True,
             is_director=True,
             is_admin=True,
-            company='superuser',
+            company=Faker().last_name(),
             county="Nairobi"
         )
 
@@ -278,6 +277,9 @@ def send_staff_registry_email(sender, instance, **kwargs):
 
 @receiver(post_save, sender=User, dispatch_uid="create_user_varification_token")
 def send_activation_email(sender, instance, **kwargs):
+    if instance.is_superuser:
+        return
+
     subject = "Jambo SMS email verification link"
     payload = { 
             "email": instance.email,

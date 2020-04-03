@@ -39,33 +39,45 @@ class RegistrationSerializer(serializers.Serializer):
 
     def validate(self, data):
         """validate data before it gets saved"""
+        error_dict = {}
         confirmed_password = data.get("confirmed_password")
+        company = data.get("company")
+        email = data.get("email")
+        phone = data.get("phone")
+
+        company = Company.objects.filter(name=company)
+
+        if company:
+            error_dict.update({"company": "A Company is already registered with this name."}) 
+        
+        user = User.objects.filter(email=email)
+
+        if user:
+            error_dict["email"] = "A user is already registered with this email."
+
+        user = User.objects.filter(phone=phone)
+
+        if user:
+            error_dict["phone"] = "A user is already registered with this phone number."
 
         try:
             validate_password(data["password"])
         except ValidationError as e:
-            raise serializers.ValidationError({"password": e.messages}) from e
+            error_dict["password"] = str(e)
 
         if not self.do_passwords_match(data["password"], confirmed_password):
-            raise serializers.ValidationError({"password": "passwords don't match"})
+            error_dict.update({"password": "passwords don't match"})
+
+        if error_dict:
+            raise ValidationError(error_dict)
 
         return data
 
     def create(self, validated_data):
         validated_data.pop("confirmed_password")
-        try:
-            user = self.Meta.create_user(**validated_data)
-            return user
-        except IntegrityError as exc:
-            errored_field = get_errored_integrity_field(exc)
-            if errored_field:
-                raise serializers.ValidationError(
-                    {
-                        errored_field: f"A user is already registered with this {errored_field}."
-                    }
-                ) from exc
-        except ValidationError as exc:
-            raise serializers.ValidationError(exc.args[0]) from exc
+        user = self.Meta.create_user(**validated_data)
+        return user
+    
 
     @staticmethod
     def do_passwords_match(password1, password2):
