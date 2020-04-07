@@ -16,7 +16,7 @@ class CreateScheduleView(generics.GenericAPIView):
         serializer = serializers.CrontabScehduleSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         period_task_instance = serializer.save()
-        period_task_serializer  = serializers.PeriodicTaskSerializer(instance=period_task_instance)
+        period_task_serializer  = serializers.PeriodicTaskSerializer(instance=period_task_instance, context={"request": request})
         return Response(data=period_task_serializer.data, status=status.HTTP_201_CREATED)
 
     def get(self, request, *args, **kwargs):
@@ -43,12 +43,13 @@ class RetrieveUpdateScheduleView(generics.RetrieveUpdateDestroyAPIView):
         return serializer_class
 
     def update(self, request, *args, **kwargs):
+        
         response = super().update(request, *args, **kwargs)
-
-        if self.request.query_params.get("update") == "time":
+        
+        if self.request.query_params.get("update") == "time":  
             pk = kwargs['pk']
             instance = models.PeriodicTask.objects.get(pk=pk)
-            serializer = serializers.PeriodicTaskSerializer(instance)
+            serializer = serializers.PeriodicTaskSerializer(instance, context={"request": request})
             response = Response(serializer.data)
         
         return response

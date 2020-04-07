@@ -8,7 +8,7 @@ from rest_framework.exceptions import ValidationError
 
 from . import serializers, models
 from core.utils.sms_helpers import send_sms
-from core.permissions import IsOwnerorSuperuser, IsComapanyOwned
+from core.permissions import IsCompanyOwned
 from core.views import CustomCreateAPIView
 from core.utils.helpers import CsvExcelReader, get_errored_integrity_field
 
@@ -62,11 +62,11 @@ class SMSRequestView(generics.ListAPIView, CustomCreateAPIView, ModelSerializerM
     """create, list and delete sms requests """
 
     def get_serializer_class(self):
-        medium = self.request.query_params.get("medium")
+        medium = self.request.query_params.get("medium", None)
         return self.map_serializer_to_view(medium, "request")
 
     def get_queryset(self):
-        medium = self.request.query_params.get("medium")
+        medium = self.request.query_params.get("medium", None)
         return self.map_queryset_to_view(medium, "request")
 
     def delete(self, request):
@@ -88,7 +88,7 @@ class SMSTemplateView(generics.ListAPIView, CustomCreateAPIView):
 class SingleSMSTemplateView(generics.RetrieveUpdateDestroyAPIView, CustomCreateAPIView):
     """Single SMS actions"""
 
-    permission_classes = [IsComapanyOwned]
+    permission_classes = [IsAuthenticated, IsCompanyOwned]
     serializer_class = serializers.SMSTemplateSerializer
     queryset = models.SMSTemplate.objects.all()
 
@@ -107,11 +107,11 @@ class GroupView(generics.ListAPIView, ModelSerializerMappingMixin, CustomCreateA
             raise ValidationError({field: f'This {field} already exists'})
 
     def get_serializer_class(self):
-        medium = self.request.query_params.get("medium")
+        medium = self.request.query_params.get("medium", None)
         return self.map_serializer_to_view(medium, "group")
 
     def get_queryset(self):
-        medium = self.request.query_params.get("medium")
+        medium = self.request.query_params.get("medium", None)
         return self.map_queryset_to_view(medium, "group")
 
 
@@ -122,18 +122,17 @@ class SingleGroupView(generics.RetrieveUpdateDestroyAPIView, ModelSerializerMapp
     update is used to remove members
     """
 
-    permission_classes = [IsComapanyOwned]
+    permission_classes = [IsAuthenticated, IsCompanyOwned]
 
     def get_serializer_class(self):
-        medium = self.request.query_params.get("medium")
+        medium = self.request.query_params.get("medium", None)
         if medium == "email":
             return serializers.SingleEmailGroupSerializer
         return serializers.SingleSMSGroupSerializer
 
     def get_queryset(self):
-        medium = self.request.query_params.get("medium")
+        medium = self.request.query_params.get("medium", None)
         return self.map_queryset_to_view(medium, "group")
-
 
     def perform_update(self, serializer):
         """
@@ -146,8 +145,7 @@ class SingleGroupView(generics.RetrieveUpdateDestroyAPIView, ModelSerializerMapp
             "PUT": serializer.instance.members.remove
         }
         if new_members:
-            for new_member in new_members:
-                group_member_action[self.request.method](new_member)
+            group_member_action[self.request.method](*new_members)
             serializer.instance.save()
         serializer.save()
 
@@ -155,7 +153,7 @@ class SingleGroupView(generics.RetrieveUpdateDestroyAPIView, ModelSerializerMapp
 class GroupMembersView(generics.ListAPIView,CustomCreateAPIView, ModelSerializerMappingMixin):
     """Create or list members"""
     def get_serializer_class(self):
-        medium = self.request.query_params.get("medium")
+        medium = self.request.query_params.get("medium", None)
         return self.map_serializer_to_view(medium, "member")
 
     def get_queryset(self):
@@ -168,12 +166,12 @@ class SingleGroupMembersView(generics.RetrieveUpdateDestroyAPIView, ModelSeriali
     """Update, delete and get actions on members"""
 
     def get_serializer_class(self):
-        medium = self.request.query_params.get("medium")
-        return self.map_serializer_to_view(medium, "group")
+        medium = self.request.query_params.get("medium", None)
+        return self.map_serializer_to_view(medium, "member")
 
     def get_queryset(self):
-        medium = self.request.query_params.get("medium")
-        return self.map_queryset_to_view(medium, "group")
+        medium = self.request.query_params.get("medium", None)
+        return self.map_queryset_to_view(medium, "member")
 
 
 class MassMemberUploadView(generics.GenericAPIView):

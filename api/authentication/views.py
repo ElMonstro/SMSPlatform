@@ -6,10 +6,11 @@ from django.conf import settings
 from rest_framework.response import Response
 from rest_framework import status, generics
 from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
 
 from . import serializers
 from .models import AddStaffModel, Company
-from core.permissions import IsAdmin
+from core.permissions import IsAdmin, IsDirector, IsCompanyOwned, IsSuperUser, IsReseller
 
 
 class RegistrationView(generics.CreateAPIView):
@@ -46,7 +47,7 @@ class AddStaffView(generics.CreateAPIView):
     
     serializer_class = serializers.AddStaffSerializer
     queryset = AddStaffModel.objects.all()
-    permission_classes = [IsAdmin]
+    permission_classes = [IsAuthenticated, IsAdmin]
 
     def post(self,request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
@@ -57,18 +58,25 @@ class AddStaffView(generics.CreateAPIView):
 
 class GetCompanyView(generics.RetrieveAPIView):
     """Get Company data"""
+    permission_classes = [IsAuthenticated, IsCompanyOwned]
+
     serializer_class = serializers.CompanySerializer
     queryset = Company.objects.all()
 
 
 class GetCompaniesView(generics.ListAPIView):
     """Get all companies"""
+
+    permission_classes = [IsAuthenticated, IsSuperUser]
+
     serializer_class = serializers.CompanySerializer
     queryset = Company.objects.all()
 
 
 class InviteClient(APIView):
     
+    permission_classes = [IsAuthenticated, IsReseller]
+
     def post(self, request, *args, **kwargs):
         serializer = serializers.InviteClientSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

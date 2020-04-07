@@ -8,6 +8,7 @@ from core.views import CustomCreateAPIView, CustomListAPIView
 from . import serializers, models
 from core.utils.helpers import raise_validation_error
 from core.views import CustomCreateAPIView, CustomListAPIView
+from core.permissions import IsSuperUser, IsReseller
 
 class MpesaCallbackView(generics.CreateAPIView):
     """Mesa callback view"""
@@ -32,10 +33,16 @@ class RechargeView(APIView):
         return Response(data, status=status_code)
 
 class CreateListRechargePlanView(generics.ListCreateAPIView):
+
+    permission_classes = [IsAuthenticated, IsSuperUser]
+    
     serializer_class = serializers.RechargePlanSerializer
     queryset = models.RechargePlan.objects.all()
 
 
 class CreateListResellerRechargePlanView(generics.ListAPIView, CustomCreateAPIView):
+
+    permission_classes = [IsAuthenticated, IsReseller]
+
     serializer_class = serializers.ResellerRechargePlanSeializer
     queryset = models.ResellerRechargePlan.objects.all()

@@ -11,9 +11,9 @@ from . import models
 from core.utils.sms_helpers import (send_sms, 
 create_personalized_message, send_mass_unique_sms, count_sms,
 count_personalized_sms, update_sms_count, update_email_count)
-from core.utils.helpers import (soft_delete_owned_object, 
+from core.utils.helpers import ( 
 CsvExcelReader, add_country_code, raise_validation_error)
-from core.utils.validators import (validate_primary_keys, 
+from core.utils.validators import ( 
 validate_phone_list, validate_excel_csv, validate_csv_row,
 validate_first_name_column, get_intnl_phone)
 
@@ -23,7 +23,7 @@ class SMSRequestSerializer(serializers.ModelSerializer):
     recepients = serializers.ListField(
         required=False, validators=[validate_phone_list], child=serializers.CharField()
     )
-    groups = serializers.ListField(child=serializers.PrimaryKeyRelatedField(queryset=models.SMSGroup.objects.all()), write_only=True)
+    groups = serializers.ListField(child=serializers.PrimaryKeyRelatedField(queryset=models.SMSGroup.objects.all()), write_only=True, required=False)
 
     def get_fields(self, *args, **kwargs):
         fields = super().get_fields(*args, **kwargs)
@@ -56,11 +56,11 @@ class SMSRequestSerializer(serializers.ModelSerializer):
         update_sms_count(sms_count, company)
         send_sms(validated_data["message"], recepients)
         validated_data["sms_count"] = sms_count
-        return self.save_request(validated_data, super().create)
+        return self.save_request(validated_data)
 
-    def save_request(self, validated_data, save):
+    def save_request(self, validated_data):
         groups = validated_data.pop("groups", [])
-        instance = save(self, validated_data)
+        instance = serializers.ModelSerializer.create(self, validated_data)
         instance.groups.add(*groups)
         instance.save()
         return instance
@@ -86,7 +86,7 @@ class SMSRequestSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.SMSRequest
-        fields = ["message", "groups", "recepients"]
+        fields = ["message", "groups", "recepients", "id", "sms_count", "is_deleted"]
         extra_kwargs = {'company': {'read_only':True}}
 
 class EmailRequestSerializer(SMSRequestSerializer):
@@ -96,16 +96,16 @@ class EmailRequestSerializer(SMSRequestSerializer):
         validated_data["recepients"] = recepients
         subject = validated_data["subject"]
         message = validated_data["message"]
-        company = self.context["request"].user.company
         email_count = len(recepients)
         validated_data["email_count"] = email_count
         from_email = settings.COMPANY_EMAIL
         send_mail(subject, message, from_email, recepients)
-        return self.save_request(validated_data, serializers.ModelSerializer.create)
+
+        return self.save_request(validated_data)
         
     class Meta:
         model = models.EmailRequest
-        fields = ["message", "subject", "groups", "recepients"]
+        fields = ["message", "subject", "groups", "recepients", "id", "email_count"]
         extra_kwargs = {'company': {'read_only':True}}
 
 class SMSGroupSerializer(serializers.ModelSerializer):
@@ -135,17 +135,26 @@ class SMSTemplateSerializer(serializers.ModelSerializer):
 
 class DeleteSMSRequestsSerializer(serializers.Serializer):
 
-    sms_requests = serializers.ListSerializer(
-        child=serializers.IntegerField(required=True)
-    )
+    message_requests = serializers.ListField(child=serializers.PrimaryKeyRelatedField(queryset=models.SMSGroup.objects.none()), write_only=True)
 
+    def get_fields(self, *args, **kwargs):
+        fields = super().get_fields(*args, **kwargs)
+        if self.context["request"].user.is_anonymous:
+            return fields
+        company = self.context["request"].user.company
+        medium = self.context["request"].query_params.get("medium")
+        self.model_mapping = {
+            None: models.SMSRequest,
+            'email': models.EmailRequest
+        }
+        fields["message_requests"].child.queryset = self.model_mapping[medium].objects.filter(company=company)
+        return fields
+
+    
     def delete(self):
-        sms_requests = self.data.get("sms_requests")
-        user = self.context["request"].user
-        if sms_requests:
-            validate_primary_keys(sms_requests)
-            for pk in sms_requests:
-                soft_delete_owned_object(models.SMSRequest, user, pk)
+        message_requests = self.validated_data.get("message_requests")
+        for request in message_requests:
+            request.soft_delete(commit=True)
 
 class GroupMemberSerializer(serializers.ModelSerializer):
     group = serializers.PrimaryKeyRelatedField(queryset=models.SMSGroup.objects.all(), write_only=True)
@@ -181,7 +190,7 @@ class EmailGroupMemberSerializer(GroupMemberSerializer):
 
 class SingleSMSGroupSerializer(serializers.ModelSerializer):
 
-    members = GroupMemberSerializer(many=True, read_only=True)
+    member_list = GroupMemberSerializer(many=True, read_only=True)
 
     class Meta:
         model = models.SMSGroup
@@ -190,7 +199,7 @@ class SingleSMSGroupSerializer(serializers.ModelSerializer):
 
 class SingleEmailGroupSerializer(serializers.ModelSerializer):
 
-    members = EmailGroupMemberSerializer(many=True, read_only=True)
+    member_list = EmailGroupMemberSerializer(many=True, read_only=True)
     
     class Meta:
         model = models.EmailGroup

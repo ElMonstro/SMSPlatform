@@ -14,7 +14,7 @@ data_without_recepient_or_group = {
 data_with_both_recepient_or_group = {
     "message": "yeah mayyyne",
     "recepients": ["+254754333000"],
-    "group": 1
+    "groups": [1]
 }
 
 valid_sms_template_data = {

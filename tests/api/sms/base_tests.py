@@ -7,7 +7,7 @@ from rest_framework.test import APIClient, APITestCase, APIRequestFactory
 from rest_framework_simplejwt.views import TokenObtainPairView
 from tests.factories.auth_factories import UserFactory
 from rest_framework.test import force_authenticate
-from api.sms import views
+from api.sms import views, models
 from . import dummy_data
 from faker import Faker
 
@@ -20,12 +20,15 @@ class BaseTest(APITestCase):
     def setUp(self):
         self.client = APIClient()
         self.request_factory = APIRequestFactory()
-        self.user = UserFactory.create()
+        user = UserFactory.create()
+        user.is_verified = True
+        user.save()
+        self.user = user
         self.create_list_sms_url = "/api/v1/sms/"
-        request = self.request_factory.post(self.create_list_sms_url, dummy_data.valid_sms_template_data)
-        force_authenticate(request, self.user)
-        response = views.GroupView.as_view()(request)
-        self.group_id = response.data["id"]
+        instance = models.SMSGroup(name="name", company=self.user.company)
+        instance.save()
+        self.group_instance = instance
+        self.group_id = instance.pk
 
 class UploadBasetest(BaseTest):
     """setup csv tests"""

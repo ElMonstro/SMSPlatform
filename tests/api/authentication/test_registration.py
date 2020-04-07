@@ -33,7 +33,7 @@ class UserRegistrationTest(BaseTest):
         response = self.client.post(self.registration_url, self.new_user, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(
-            response.data["email"], "A user is already registered with this email."
+            str(response.data["email"][0]), "A user is already registered with this email."
         )
 
     def test_user_should_not_register_with_a_used_company(self):
@@ -42,7 +42,7 @@ class UserRegistrationTest(BaseTest):
         response = self.client.post(self.registration_url, self.new_user, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(
-            response.data["name"], "Company already exists with name"
+            str(response.data["company"][0]), "A Company is already registered with this name."
         )
 
     def test_user_should_not_register_with_a_weak_password(self):

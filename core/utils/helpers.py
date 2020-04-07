@@ -33,26 +33,6 @@ def get_errored_integrity_field(exc):
     return field if field else None
 
 
-def soft_delete_owned_object(model, user, pk):
-    """
-    soft deletes and object if the user owns it
-    params:
-        model - django model
-        user - user object
-        pk - object primary key
-    returns: None
-    Raises:
-        Validation error if primary key is not an integer
-    """
-    try:
-        sms_request = model.active_objects.get(pk=pk, owner=user)
-        sms_request.soft_delete(commit=True)
-    except models.ObjectDoesNotExist:
-        pass
-    except (ValueError, TypeError):
-        raise ValidationError({"detail": f"Only integers allowed. '{pk}' is invalid."})
-
-
 class CsvExcelReader:
     """
     A class that is initialized with a csv or excel file another which is 
