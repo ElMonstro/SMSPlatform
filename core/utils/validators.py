@@ -73,13 +73,6 @@ def validate_phone_list(phone_list):
         if not validate_phone_number(number):
             raise ValidationError(f"Invalid phone number at index {index}")
 
-def validate_primary_keys(keys):
-    invalid_keys = []
-    for key in keys:
-        if not isinstance(key, int):
-            invalid_keys.append(key)
-    if invalid_keys:
-        raise ValidationError({"detail": f"Only integers allowed. {str(invalid_keys)[1:-1]} is/are invalid."})
 
 def validate_model_reference_is_own(user, model, instance):
     """Validate the user owns the group reference"""

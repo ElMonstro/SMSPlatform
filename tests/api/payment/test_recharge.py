@@ -62,12 +62,16 @@ class TestRecharPlanViews(BaseTest):
     def test_send_recharge_plan_request_succeeds(self):
         """Test recharge plan view with correct data will be successful"""
         request = self.request_factory.post(self.create_list_sms_url, dummy_data.recharge_plan_data)
+        self.user.is_superuser = True
+        self.user.save()
         force_authenticate(request, self.user)
         response = views.CreateListRechargePlanView.as_view()(request)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
     
     def test_send_recharge_plan_request_fails_with_incorrect_data(self):
         """Test recharge view without customer number will fail"""
+        self.user.is_superuser = True
+        self.user.save()
         data = dummy_data.recharge_plan_data.copy()
         data.pop("price_limit")
         request = self.request_factory.post(self.create_list_sms_url, data)

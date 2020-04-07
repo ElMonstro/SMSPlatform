@@ -20,7 +20,10 @@ class BaseTest(APITestCase):
     def setUp(self):
         self.client = APIClient()
         self.request_factory = APIRequestFactory()
-        self.user = UserFactory.create()
+        user = UserFactory.create()
+        user.is_verified = True
+        user.save()
+        self.user = user
         self.create_list_sms_url = "/api/v1/sms/"
         instance = models.SMSGroup(name="name", company=self.user.company)
         instance.save()

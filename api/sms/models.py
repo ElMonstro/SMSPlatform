@@ -9,7 +9,7 @@ class SMSRequest(AbstractBaseModel):
         "authentication.Company", on_delete=models.CASCADE,related_name="sms_requests"
     )
     message = models.CharField(max_length=800)
-    groups =models.ManyToManyField("SMSGroup", related_name="sms_groups", blank=True)
+    groups = models.ManyToManyField("SMSGroup", related_name="sms_groups", blank=True)
     recepients = ArrayField(
         base_field=models.CharField(max_length=20), blank=True, null=True
     )

@@ -1,3 +1,4 @@
+from faker import Faker
 from unittest.mock import patch
 from rest_framework import status
 from rest_framework.test import force_authenticate
@@ -56,24 +57,18 @@ class TestMembers(BaseTest):
         request = self.request_factory.patch(self.create_list_sms_url, data)
         force_authenticate(request, self.user)
         response = views.SingleGroupView.as_view()(request, pk=self.group_id)
-        self.assertEqual(member_pk, response.data["members"][0]["id"])
+        self.assertEqual(member_pk, response.data["members"][0])
 
     def test_remove_group_members_succeeds(self):
         """Test that remove group members successful"""
-        request = self.request_factory.post(self.create_list_sms_url, dummy_data.valid_group_data)
-        force_authenticate(request, self.user)
-        response = views.GroupView.as_view()(request)
-        pk = response.data["id"]
-        data = dummy_data.valid_member_data.copy()
-        data["group"] = self.group_id
-        request = self.request_factory.post(self.create_list_sms_url, data)
-        force_authenticate(request, self.user)
-        member_pk = views.GroupMembersView.as_view()(request).data["id"]
-        data = {"members": [member_pk], "name": "name"}
+        instance = models.GroupMember(phone=self.user.phone, company=self.user.company)
+        instance.save()
+        member_pk = instance.pk
+        data = {"members": [member_pk], "name": Faker().last_name()}
         request = self.request_factory.patch(self.create_list_sms_url, data)
         force_authenticate(request, self.user)
-        views.SingleGroupView.as_view()(request, pk=pk)
+        views.SingleGroupView.as_view()(request, pk=self.group_id)
         request = self.request_factory.put(self.create_list_sms_url, data)
         force_authenticate(request, self.user)
-        response = views.SingleGroupView.as_view()(request, pk=pk)
+        response = views.SingleGroupView.as_view()(request, pk=self.group_id)
         self.assertEqual([], response.data["members"])

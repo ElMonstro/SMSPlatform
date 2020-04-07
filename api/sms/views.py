@@ -134,7 +134,6 @@ class SingleGroupView(generics.RetrieveUpdateDestroyAPIView, ModelSerializerMapp
         medium = self.request.query_params.get("medium", None)
         return self.map_queryset_to_view(medium, "group")
 
-
     def perform_update(self, serializer):
         """
         Change members m2m field update behaviour 

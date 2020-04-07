@@ -16,7 +16,10 @@ class BaseTest(APITestCase):
         self.client = APIClient()
         self.registration_url = "/api/v1/auth/register/"
         self.request_factory = APIRequestFactory()
-        self.user = UserFactory.create()
+        user = UserFactory.create()
+        user.is_verified = True
+        user.save()
+        self.user = user
         self.new_user = {
             "full_name": self.user.full_name,
             "email": fake.email(),

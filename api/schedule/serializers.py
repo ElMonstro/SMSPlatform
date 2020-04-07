@@ -102,7 +102,10 @@ class PeriodicTaskSerializer(serializers.ModelSerializer):
     crontab = UpdateScheduleTimeSerializer(read_only=True)
 
     def get_fields(self, *args, **kwargs):
-        fields = super().get_fields(*args, **kwargs)  
+        fields = super().get_fields(*args, **kwargs)
+        
+        if self.context["request"].user.is_anonymous:
+            return fields 
         company = self.context["request"].user.company
         
         if self.context["request"].query_params.get("medium") == "email":

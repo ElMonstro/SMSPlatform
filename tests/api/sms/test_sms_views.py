@@ -53,22 +53,23 @@ class SMSRequestViewsTest(BaseTest):
     @patch("api.sms.serializers.send_sms")
     def test_delete_sms_requests_valid_data_succeeds(self, _):
         """Test that delete created sms succeed"""
-        create_request = self.request_factory.post(self.create_list_sms_url, dummy_data.valid_sms_data)
         get_request = self.request_factory.get(self.create_list_sms_url)
-        force_authenticate(create_request, self.user)
         force_authenticate(get_request, self.user)
-        views.SMSRequestView.as_view()(create_request)
-        id = views.SMSRequestView.as_view()(get_request).data['results'][0]["id"]
-        delete_request = self.request_factory.delete(self.create_list_sms_url, {"sms_requests": [id]})
+        instance = models.SMSRequest(company=self.user.company, recepients=["+254726406733"], message="Come")
+        instance.save()
+        id = instance.pk
+        delete_request = self.request_factory.delete(self.create_list_sms_url, {"message_requests": [id]})
         force_authenticate(delete_request, self.user)
         response = views.SMSRequestView.as_view()(delete_request)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
-    def test_delete_sms_requests_non_existent_id_succeeds(self):
-            """Test that delete sms requests  with non-existent id  succeeds"""
-            delete_request = self.request_factory.delete(self.create_list_sms_url, {
-                                "sms_requests": [100]
-                            })
-            force_authenticate(delete_request, self.user)
-            response = views.SMSRequestView.as_view()(delete_request)
-            self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+    def test_delete_sms_requests_non_existent_id_fails(self):
+        """Test that delete sms requests  with non-existent id fails"""
+        delete_request = self.request_factory.delete(self.create_list_sms_url, {
+                            "message_requests": [100]
+                        })
+        force_authenticate(delete_request, self.user)
+        response = views.SMSRequestView.as_view()(delete_request)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["message_requests"][0], ['Invalid pk "100" - object does not exist.'])
+        
