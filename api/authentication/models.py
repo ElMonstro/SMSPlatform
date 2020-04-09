@@ -267,26 +267,26 @@ class Company(models.Model):
         return self.name
 
 
-@receiver(post_save, sender=AddStaffModel, dispatch_uid="create_staff_registration_token")
-def send_staff_registry_email(sender, instance, **kwargs):
-    subject = "Jambo SMS Staff registration link"
-    message = settings.FRONTEND_LINK + instance.token.decode("utf-8")
-    email_from = settings.EMAIL_HOST_USER
-    receipient_list = [instance.email]
-    send_mail( subject, message, email_from, receipient_list )
+# @receiver(post_save, sender=AddStaffModel, dispatch_uid="create_staff_registration_token")
+# def send_staff_registry_email(sender, instance, **kwargs):
+#     subject = "Jambo SMS Staff registration link"
+#     message = settings.FRONTEND_LINK + instance.token.decode("utf-8")
+#     email_from = settings.EMAIL_HOST_USER
+#     receipient_list = [instance.email]
+#     send_mail( subject, message, email_from, receipient_list )
 
-@receiver(post_save, sender=User, dispatch_uid="create_user_varification_token")
-def send_activation_email(sender, instance, **kwargs):
-    if instance.is_superuser:
-        return
+# @receiver(post_save, sender=User, dispatch_uid="create_user_varification_token")
+# def send_activation_email(sender, instance, **kwargs):
+#     if instance.is_superuser:
+#         return
 
-    subject = "Jambo SMS email verification link"
-    payload = { 
-            "email": instance.email,
-            "date": datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
-             }
-    token = encode(payload, settings.SECRET_KEY)
-    message = settings.FRONTEND_LINK + 'verify/' + token.decode("utf-8")
-    email_from = settings.COMPANY_EMAIL
-    receipient_list = [instance.email]
-    send_mail( subject, message, email_from, receipient_list )
+#     subject = "Jambo SMS email verification link"
+#     payload = { 
+#             "email": instance.email,
+#             "date": datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
+#              }
+#     token = encode(payload, settings.SECRET_KEY)
+#     message = settings.FRONTEND_LINK + 'verify/' + token.decode("utf-8")
+#     email_from = settings.COMPANY_EMAIL
+#     receipient_list = [instance.email]
+#     send_mail( subject, message, email_from, receipient_list )
