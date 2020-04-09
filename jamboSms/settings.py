@@ -33,7 +33,7 @@ DEBUG = os.getenv("ENV") == "dev" or os.getenv("ENV") == "staging" or False
 
 ALLOWED_HOSTS = []
 
-
+FIXTURE_DIRS = ["fixtures", "main_fixture"]
 # Application definition
 
 INSTALLED_APPS = [
