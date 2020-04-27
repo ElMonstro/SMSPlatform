@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from jwt import encode, decode, DecodeError
 
 from django.db.utils import IntegrityError
@@ -10,8 +10,8 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from core.utils.validators import validate_phone_number
-from core.utils.helpers import get_errored_integrity_field
-from .models import User, AddStaffModel, Company
+from core.utils.helpers import get_errored_integrity_field, raise_validation_error
+from .models import User, AddStaffModel, Company, ResetPasswordToken
 
 
 class CompanySerializer(serializers.ModelSerializer):
@@ -169,3 +169,50 @@ class ResellerClientSerializer(RegistrationSerializer):
 
     class Meta:
         create_user = User.objects.create_reseller_client
+
+
+class UpdatePasswordSerializer(serializers.Serializer):
+
+    confirm_password = serializers.CharField(validators=[validate_password])
+    password = serializers.CharField(validators=[validate_password])
+    token = serializers.CharField()
+
+    def is_valid(self, raise_exception=True):
+        super().is_valid(raise_exception=True)
+        if not self.validated_data["confirm_password"] == self.initial_data["password"]:
+            raise_validation_error({"detail":"Passwords do not match"})
+        
+        token = self.validated_data["token"]
+        tokens = ResetPasswordToken.objects.filter(key=token)
+
+        if not bool(tokens):
+            raise_validation_error({"detail": "Invalid token"})
+
+        if datetime.now() - tokens[0].created_at.replace(tzinfo=None)  > timedelta(hours=24):
+            raise_validation_error({"detail": "Token expired"})
+
+        
+
+    def update_password(self):
+        token = self.validated_data["token"]
+        user = ResetPasswordToken.objects.get(key=token).user
+        user.set_password(self.validated_data["password"])
+        user.save()
+
+
+class PasswordResetSerializer(serializers.Serializer):
+
+    email = serializers.EmailField()
+
+    def is_user_available(self):
+        email = self.validated_data.get("email")
+        users = User.objects.filter(email=email)
+        return bool(users)
+
+    def create(self, validated_data):
+        email = validated_data.pop("email")
+        user = User.objects.get(email=email)
+        validated_data["user"] = user
+        instance = ResetPasswordToken(**validated_data)
+        instance.save()
+        return instance
