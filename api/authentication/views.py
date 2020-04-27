@@ -9,7 +9,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 
 from . import serializers
-from .models import AddStaffModel, Company
+from .models import AddStaffModel, Company, ResetPasswordToken
 from core.permissions import IsAdmin, IsDirector, IsCompanyOwned, IsSuperUser, IsReseller
 
 
@@ -96,4 +96,29 @@ class VerifyUser(APIView):
         serializer = serializers.VerifyUserSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         return Response({"detail": "Success, user verified"})
+
+
+class SendPasswordResetEmail(APIView):
+
+    permission_classes = []
+    serializer_class = serializers.PasswordResetSerializer
+    queryset = ResetPasswordToken.objects.all()
+
+    def post(self, request, *args, **kwargs):
+        serializer = serializers.PasswordResetSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        if serializer.is_user_available():
+            serializer.save()
+        return Response({"detail": "Success, user reset link sent"})
         
+
+class ResetPassword(APIView):
+
+    permission_classes = []
+
+    def patch(self, request, *args, **kwargs):
+        serializer = serializers.UpdatePasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.update_password()
+        return Response({"detail": "Success, password reset"})
+

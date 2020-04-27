@@ -15,5 +15,7 @@ urlpatterns = [
     path("invite-client/", views.InviteClient.as_view(), name="invite_client"),
     path("companies/", views.GetCompaniesView.as_view(), name="get_companies"),
     path("companies/<int:pk>/", views.GetCompanyView.as_view(), name="get_company"),
-    path("verify-user/", views.VerifyUser.as_view(), name="verfy_user")
+    path("verify-user/", views.VerifyUser.as_view(), name="verify_user"),
+    path("reset-password/send-email/", views.SendPasswordResetEmail.as_view(), name="send_reset_email"),
+    path("reset-password/", views.ResetPassword.as_view(), name="reset_password")
 ]

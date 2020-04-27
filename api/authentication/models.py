@@ -3,6 +3,12 @@ from datetime import datetime
 
 from faker import Faker
 
+from django.core.mail import EmailMultiAlternatives
+from django.dispatch import receiver
+from django.template.loader import render_to_string
+from django.urls import reverse
+from django.db.models.signals import post_save
+
 from django.db import models
 from django.contrib.auth import get_user_model, password_validation
 from django.db.models.signals import post_save
@@ -20,6 +26,7 @@ from rest_framework.exceptions import ValidationError
 
 from core.models import AbstractBaseModel, ActiveObjectsQuerySet
 from core.utils.validators import validate_phone_number, validate_required_arguments
+from core.utils.helpers import generate_token
 
 
 class UserManager(BaseUserManager):
@@ -267,26 +274,96 @@ class Company(models.Model):
         return self.name
 
 
-# @receiver(post_save, sender=AddStaffModel, dispatch_uid="create_staff_registration_token")
-# def send_staff_registry_email(sender, instance, **kwargs):
-#     subject = "Jambo SMS Staff registration link"
-#     message = settings.FRONTEND_LINK + instance.token.decode("utf-8")
-#     email_from = settings.EMAIL_HOST_USER
-#     receipient_list = [instance.email]
-#     send_mail( subject, message, email_from, receipient_list )
+class ResetPasswordToken(models.Model):
 
-# @receiver(post_save, sender=User, dispatch_uid="create_user_varification_token")
-# def send_activation_email(sender, instance, **kwargs):
-#     if instance.is_superuser:
-#         return
+    @staticmethod
+    def generate_key():
+        """ generates a pseudo random code using secrets module """
+        return generate_token(20)
 
-#     subject = "Jambo SMS email verification link"
-#     payload = { 
-#             "email": instance.email,
-#             "date": datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
-#              }
-#     token = encode(payload, settings.SECRET_KEY)
-#     message = settings.FRONTEND_LINK + 'verify/' + token.decode("utf-8")
-#     email_from = settings.COMPANY_EMAIL
-#     receipient_list = [instance.email]
-#     send_mail( subject, message, email_from, receipient_list )
+    user = models.ForeignKey(
+        User,
+        related_name='password_reset_tokens',
+        on_delete=models.CASCADE
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    # Key field, though it is not the primary key of the model
+    key = models.CharField(
+        max_length=64,
+        db_index=True,
+        unique=True
+    )
+   
+    def save(self, *args, **kwargs):
+        if not self.key:
+            self.key = self.generate_key()
+        return super(ResetPasswordToken, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return "Password reset token for user {user}".format(user=self.user)
+
+
+
+@receiver(post_save, sender=AddStaffModel, dispatch_uid="create_staff_registration_token")
+def send_staff_registry_email(sender, instance, **kwargs):
+    subject = "Jambo SMS Staff registration link"
+    message = settings.FRONTEND_LINK + instance.token.decode("utf-8")
+    email_from = settings.EMAIL_HOST_USER
+    receipient_list = [instance.email]
+    send_mail( subject, message, email_from, receipient_list )
+
+@receiver(post_save, sender=User, dispatch_uid="create_user_varification_token")
+def send_activation_email(sender, instance, **kwargs):
+    if instance.is_superuser:
+        return
+
+    subject = "Jambo SMS email verification link"
+    payload = { 
+            "email": instance.email,
+            "date": datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
+             }
+    token = encode(payload, settings.SECRET_KEY)
+    message = settings.FRONTEND_LINK + 'verify/' + token.decode("utf-8")
+    email_from = settings.COMPANY_EMAIL
+    receipient_list = [instance.email]
+    send_mail( subject, message, email_from, receipient_list )
+
+
+@receiver(post_save, sender=ResetPasswordToken, dispatch_uid="send-reset-email")
+def password_reset_token_created(sender, instance, *args, **kwargs):
+    """
+    Handles password reset tokens
+    When a token is created, an e-mail needs to be sent to the user
+    :param sender: View Class that sent the signal
+    :param instance: View Instance that sent the signal
+    :param args:
+    :param kwargs:
+    :return:
+    """
+    # send an e-mail to the user
+    context = {
+        'current_user': instance.user,
+        'name': instance.user.full_name,
+        'email': instance.user.email,
+        'reset_password_url': f"{settings.FRONTEND_LINK}/reset-pasword/{instance.key}"
+    }
+
+    # render email text
+    email_html_message = render_to_string('reset_password_template.html', context)
+    email_plaintext_message = render_to_string('reset_password_template.txt', context)
+    msg = EmailMultiAlternatives(
+        # title:
+        f"Password Reset for Jambo SMS",
+        # message:
+        email_plaintext_message,
+        # from:
+        settings.COMPANY_EMAIL,
+        # to:
+        [instance.user.email]
+    )
+    msg.attach_alternative(email_html_message, "text/html")
+    msg.send()

@@ -5,7 +5,7 @@ from django.db import models
 from rest_framework.exceptions import ValidationError
 import pandas as pd
 import re
-
+import secrets
 
 def get_errored_integrity_field(exc):
     """
@@ -96,4 +96,12 @@ def camel_to_snake(name):
 
 def raise_validation_error(message=None):
     raise ValidationError(message)
-    
+
+
+def generate_token(length):
+    """Generate token
+    args:
+        lenght - integer
+    returns: string
+    """
+    return secrets.token_urlsafe(length)

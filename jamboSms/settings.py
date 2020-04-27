@@ -80,10 +80,12 @@ AUTH_USER_MODEL = "authentication.User"
 
 ROOT_URLCONF = "jamboSms.urls"
 
+TEMPLATE_DIR = os.path.join(BASE_DIR,"templates")
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [TEMPLATE_DIR],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
