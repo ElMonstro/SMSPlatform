@@ -9,8 +9,10 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 
 from . import serializers
-from .models import AddStaffModel, Company, ResetPasswordToken
-from core.permissions import IsAdmin, IsDirector, IsCompanyOwned, IsSuperUser, IsReseller
+from .models import AddStaffModel, Company, ResetPasswordToken, ConsumerKey, APIKeyActivity
+from core.permissions import (IsAdmin, IsDirector, IsCompanyOwned,
+ IsSuperUser, IsReseller, IsVerified)
+from core.views import CustomCreateAPIView, CustomDestroyAPIView, CustomListAPIView
 
 
 class RegistrationView(generics.CreateAPIView):
@@ -47,7 +49,7 @@ class AddStaffView(generics.CreateAPIView):
     
     serializer_class = serializers.AddStaffSerializer
     queryset = AddStaffModel.objects.all()
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [IsAuthenticated, IsAdmin, IsVerified]
 
     def post(self,request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
@@ -58,7 +60,7 @@ class AddStaffView(generics.CreateAPIView):
 
 class GetCompanyView(generics.RetrieveAPIView):
     """Get Company data"""
-    permission_classes = [IsAuthenticated, IsCompanyOwned]
+    permission_classes = [IsAuthenticated, IsCompanyOwned, IsVerified]
 
     serializer_class = serializers.CompanySerializer
     queryset = Company.objects.all()
@@ -75,7 +77,7 @@ class GetCompaniesView(generics.ListAPIView):
 
 class InviteClient(APIView):
     
-    permission_classes = [IsAuthenticated, IsReseller]
+    permission_classes = [IsAuthenticated, IsReseller, IsVerified]
 
     def post(self, request, *args, **kwargs):
         serializer = serializers.InviteClientSerializer(data=request.data)
@@ -122,3 +124,46 @@ class ResetPassword(APIView):
         serializer.update_password()
         return Response({"detail": "Success, password reset"})
 
+
+class CreateConsumerKeyView(generics.ListAPIView, CustomCreateAPIView):
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = serializers.CreateConsumerKeySerializer
+    queryset = ConsumerKey.objects.all()
+
+    def post(self, request, *args, **kwargs):
+        if len(self.get_queryset()) > 4:
+            return Response({"detail": "Maximum number of api keys allowed is 5"}, status.HTTP_400_BAD_REQUEST)
+        return super().post(request, *args, **kwargs)
+
+
+class DeleteConsumerKeyView(CustomDestroyAPIView):
+    
+    permission_classes = [IsAuthenticated]
+    serializer_class = serializers.CreateConsumerKeySerializer
+    queryset = ConsumerKey.objects.all()
+
+    def perform_destroy(self, instance):
+        instance.user.delete()
+        instance.delete()
+
+
+class GetKeyActivityKeyView(generics.ListAPIView):
+
+    permission_classes = [IsAuthenticated,]
+    serializer_class = serializers.KeyActivitySerializer
+    queryset = APIKeyActivity.objects.all()
+
+
+class GetSingleKeyActivityKeyView(generics.ListAPIView):
+
+    permission_classes = [IsAuthenticated,]
+    serializer_class = serializers.KeyActivitySerializer
+    queryset = ConsumerKey.objects.all()
+
+    def get(self, request, *args, **kwargs):
+        instance = self.get_object()
+        queryset = instance.activity.all()
+        page = self.paginate_queryset(queryset)
+        serializer = self.get_serializer(page, many=True)
+        return self.get_paginated_response(serializer.data)
