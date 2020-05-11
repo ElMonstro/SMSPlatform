@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from jwt import encode, decode, DecodeError
+from faker import Faker
 
 from django.db.utils import IntegrityError
 from django.contrib.auth.password_validation import validate_password
@@ -11,9 +12,9 @@ from rest_framework.exceptions import ValidationError
 
 from core.utils.validators import validate_phone_number
 from core.utils.helpers import get_errored_integrity_field, raise_validation_error
-from .models import User, AddStaffModel, Company, ResetPasswordToken
+from .models import User, AddStaffModel, Company, ResetPasswordToken, ConsumerKey, APIKeyActivity
 
-
+fake = Faker()
 class CompanySerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -216,3 +217,35 @@ class PasswordResetSerializer(serializers.Serializer):
         instance = ResetPasswordToken(**validated_data)
         instance.save()
         return instance
+
+
+class CreateConsumerKeySerializer(serializers.ModelSerializer):
+
+    def save(self, **kwargs):
+        user = self.create_bot_user()
+        self.validated_data["user"] = user
+        super().save(**kwargs)
+
+    def create_bot_user(self):
+        email = fake.email()
+        phone = "+254" + fake.msisdn()[:9]
+        company = self.context["request"].user.company
+        user = User.objects.create(full_name=self.validated_data["name"], email=email, company=company, phone=phone, is_verified=True, is_api_key_agent=True)
+
+        return user
+
+
+    class Meta:
+        model = ConsumerKey
+        fields = ["key", "id", "name"]
+        extra_kwargs = {
+            'user': {'read_only':True},
+            'key': {'read_only':True}
+            }
+
+    
+class KeyActivitySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = APIKeyActivity
+        fields = "__all__"

@@ -157,7 +157,7 @@ class DeleteSMSRequestsSerializer(serializers.Serializer):
             request.soft_delete(commit=True)
 
 class GroupMemberSerializer(serializers.ModelSerializer):
-    group = serializers.PrimaryKeyRelatedField(queryset=models.SMSGroup.objects.all(), write_only=True)
+    group = serializers.PrimaryKeyRelatedField(queryset=models.SMSGroup.objects.all(), write_only=True, required=False)
 
     def get_fields(self, *args, **kwargs):
         fields = super().get_fields(*args, **kwargs)
@@ -168,9 +168,10 @@ class GroupMemberSerializer(serializers.ModelSerializer):
         return fields
 
     def save(self, **kwargs):
-        group = self.validated_data.pop("group")
+        group = self.validated_data.pop("group", None)
         instance = super().save(**kwargs)
-        group.members.add(instance)
+        if group:
+            group.members.add(instance)
         return instance
     class Meta:
         model = models.GroupMember

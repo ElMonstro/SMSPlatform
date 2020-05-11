@@ -216,6 +216,7 @@ class User(AbstractBaseModel, AbstractBaseUser, PermissionsMixin):
     is_superuser = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
     is_director = models.BooleanField(default=False)
+    is_api_key_agent = models.BooleanField(default=False)
 
     REQUIRED_FIELDS = ["full_name", "phone"]
     USERNAME_FIELD = "email"
@@ -308,6 +309,65 @@ class ResetPasswordToken(models.Model):
 
 
 
+
+class ConsumerKey(models.Model):
+
+    @staticmethod
+    def generate_key():
+        """ generates a pseudo random code using secrets module """
+        return generate_token(200)
+
+    user = models.OneToOneField(
+        User,
+        related_name='consumer_keys',
+        on_delete=models.CASCADE
+    )
+
+    company = models.ForeignKey(
+        "Company",
+        on_delete=models.CASCADE,
+        related_name="api_keys"
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    # Key field, though it is not the primary key of the model
+    key = models.CharField(
+        max_length=300,
+        db_index=True,
+        unique=True
+    )
+    name = models.CharField(
+        max_length=70,
+        unique=True
+    )
+   
+    def save(self, *args, **kwargs):
+        if not self.key:
+            self.key = self.generate_key()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return "Consumer key: {user}".format(user=self.user)
+
+
+class APIKeyActivity(AbstractBaseModel):
+    company = models.ForeignKey(
+        "Company",
+        on_delete=models.CASCADE,
+        related_name="api_key_activities"
+    )
+    key = models.ForeignKey(
+        "ConsumerKey",
+        on_delete=models.CASCADE,
+        related_name="activity"
+    )
+    url = models.CharField(max_length=50)
+    method = models.CharField(max_length=10)
+
+
 @receiver(post_save, sender=AddStaffModel, dispatch_uid="create_staff_registration_token")
 def send_staff_registry_email(sender, instance, **kwargs):
     subject = "Jambo SMS Staff registration link"
@@ -318,7 +378,7 @@ def send_staff_registry_email(sender, instance, **kwargs):
 
 @receiver(post_save, sender=User, dispatch_uid="create_user_varification_token")
 def send_activation_email(sender, instance, **kwargs):
-    if instance.is_superuser:
+    if instance.is_superuser or instance.is_api_key_agent:
         return
 
     subject = "Jambo SMS email verification link"

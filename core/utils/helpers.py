@@ -1,11 +1,17 @@
 import re
-
 from django.db.utils import IntegrityError
 from django.db import models
 from rest_framework.exceptions import ValidationError
 import pandas as pd
 import re
 import secrets
+
+import logging
+
+logger = logging.getLogger('django.test')
+
+def log(string):
+    logger.info(string)
 
 def get_errored_integrity_field(exc):
     """
@@ -105,3 +111,14 @@ def generate_token(length):
     returns: string
     """
     return secrets.token_urlsafe(length)
+
+def log_api_key_request(model, company, consumer_key, url, request_method):
+    """
+    Log api key activities
+    args:
+        model - activity models
+        url - requested url
+        request_method - request method
+    returns: None
+    """
+    model.objects.create(url=url, key=consumer_key,company=company, method=request_method)

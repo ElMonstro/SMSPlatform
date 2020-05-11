@@ -10,15 +10,6 @@ class IsSuperUser(BasePermission):
         return request.user and request.user.is_superuser
 
 
-class IsOwnerorSuperuser(BasePermission):
-    """Allows access to owners or superusers"""
-
-    def has_permission(self, request, view, obj):
-        return (
-            request.user and request.user.is_superuser or request.user == obj.requester
-        )
-
-
 class IsCompanyOwned(BasePermission):
     def has_object_permission(self, request, view, obj):
         return obj.company == request.user.company
@@ -49,7 +40,7 @@ class IsReseller(BasePermission):
     message = "Only resellers are allowed to access this resource."
 
     def has_permission(self, request, view):
-        return request.user.is_reseller
+        return request.user.company.is_reseller
 
 
 class IsVerified(BasePermission):
