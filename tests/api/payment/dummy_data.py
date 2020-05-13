@@ -43,6 +43,6 @@ recharge_plan_data = {
 
 recharge_data = {
     "customer_number": "254726406922",
-    "transaction_desc": "kichwa",
+    "transaction_desc": "sms_topup",
     "amount": 5
 }

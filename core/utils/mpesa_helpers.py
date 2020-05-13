@@ -40,7 +40,7 @@ class MpesaHandler:
         password_bytes = (business_shortcode + lnm_passkey + timestamp).encode('ascii')
         password = base64.b64encode(password_bytes).decode('ascii')
         transaction_type = "CustomerPayBillOnline"
-
+        
         payload = {
             "BusinessShortCode": business_shortcode,
             "Password": password,
@@ -89,6 +89,7 @@ def send_LNM_request(customer_number=None, amount=None, transaction_desc="test",
     payload["checkout_request_id"] = result["CheckoutRequestID"]
     payload["response_code"] = result["ResponseCode"]
     payload["customer_number"] = customer_number
+    payload["transaction_desc"] = transaction_desc
     RechargeRequest(**payload).save()
     return result
     

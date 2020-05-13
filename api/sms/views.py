@@ -8,8 +8,8 @@ from rest_framework.exceptions import ValidationError
 
 from . import serializers, models
 from core.utils.sms_helpers import send_sms
-from core.permissions import IsCompanyOwned
-from core.views import CustomCreateAPIView
+from core.permissions import IsCompanyOwned, IsSuperUser
+from core.views import CustomCreateAPIView, CustomUpdateAPIView
 from core.utils.helpers import CsvExcelReader, get_errored_integrity_field
 
 
@@ -97,14 +97,6 @@ class GroupView(generics.ListAPIView, ModelSerializerMappingMixin, CustomCreateA
 
     queryset = models.SMSGroup.objects.all()
     serializer_class = serializers.SMSGroupSerializer
-    
-    def perform_create(self, serializer):
-        # Catch unique together error 
-        try: 
-            serializer.save(company=self.request.user.company)
-        except IntegrityError as error:
-            field = get_errored_integrity_field(error)
-            raise ValidationError({field: f'This {field} already exists'})
 
     def get_serializer_class(self):
         medium = self.request.query_params.get("medium", None)
@@ -200,4 +192,29 @@ class CsvSmsView(generics.GenericAPIView):
         else:
             data = serializer.send_sms()
         return Response(data, status.HTTP_201_CREATED)
-        
+
+
+class SMSDeliveryCallbackView(generics.CreateAPIView):
+    """Handles callback for sms delivery data"""
+    serializer_class = serializers.DeliveredSMSSerializer
+    queryset = models.DeliveredSMS.objects.all()
+
+
+class CreateBrandName(CustomCreateAPIView):
+    """Handles creation of branding name""" 
+    serializer_class = serializers.SMSBrandSerializer
+    queryset = models.SMSBranding.objects.all()
+
+
+class ListBrandNameRequests(generics.ListAPIView):
+    """Handles listing branding request"""
+    permission_classes = [IsAuthenticated, IsSuperUser]
+    serializer_class = serializers.AdminSMSBrandSerializer
+    queryset = models.SMSBranding.objects.all()
+
+
+class EditBrandNameRequests(generics.UpdateAPIView):
+    """Handles listing branding request"""
+    permission_classes = [IsAuthenticated, IsSuperUser]
+    serializer_class = serializers.AdminSMSBrandSerializer
+    queryset = models.SMSBranding.objects.all()

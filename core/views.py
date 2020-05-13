@@ -47,3 +47,15 @@ class CustomDestroyAPIView(generics.DestroyAPIView):
         company = self.request.user.company
         queryset = super().get_queryset()
         return queryset.filter(company=company)
+
+
+class CustomUpdateAPIView(generics.UpdateAPIView):
+    """
+    This class adds the get_queryset function implementation that
+    filter the queryset to only return user owned objects
+    """
+
+    def get_queryset(self):
+        company = self.request.user.company
+        queryset = super().get_queryset()
+        return queryset.filter(company=company)

@@ -17,7 +17,6 @@ class SMSRequest(AbstractBaseModel):
 
     objects = ActiveObjectsQuerySet.as_manager()
 
-
 class EmailRequest(AbstractBaseModel):
     company = models.ForeignKey(
         "authentication.Company", on_delete=models.CASCADE,related_name="email_requests"
@@ -93,3 +92,32 @@ class EmailGroupMember(AbstractBaseModel):
     class Meta:
         unique_together = ('company', 'email',)
 
+
+class SMSBranding(models.Model):
+    name = models.CharField(max_length=30)
+    is_active = models.BooleanField(default=False)
+    is_approved = models.BooleanField(default=False)
+    company = models.OneToOneField(
+        "authentication.Company", on_delete=models.CASCADE,related_name="brand"
+    )
+
+
+class SentSMS(models.Model):
+    company = models.ForeignKey(
+        "authentication.Company", on_delete=models.CASCADE,related_name="sent_sms"
+    )
+    message_id = models.CharField(max_length=60, primary_key=True)
+    status = models.CharField(max_length=30)
+    status_code = models.IntegerField()
+
+
+class DeliveredSMS(AbstractBaseModel):
+    sent_sms = models.OneToOneField(
+        "SentSMS", on_delete=models.CASCADE,related_name="brand"
+        )
+    status = models.CharField(max_length=30)
+    phone_number = models.CharField(max_length=30)
+    network_code = models.CharField(max_length=10)
+    network = models.CharField(max_length=30)
+    failure_reason = models.CharField(max_length=30, null=True)
+    retry_count = models.CharField(max_length=30, null=True)
