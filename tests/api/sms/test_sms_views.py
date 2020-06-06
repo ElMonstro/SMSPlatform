@@ -23,7 +23,7 @@ class SMSRequestViewsTest(BaseTest):
         force_authenticate(request, self.user)
         response = views.SMSRequestView.as_view()(request)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data['detail'], "A receipient group id or a recepient phone number list must be provided")
+        self.assertEqual(response.data['detail'], "A receipient group id or a recepient contact list must be provided")
 
     @patch("api.sms.serializers.send_sms")
     def test_create_sms_request_with_both_group_or_recepients_succeeds(self, _):
@@ -53,8 +53,6 @@ class SMSRequestViewsTest(BaseTest):
     @patch("api.sms.serializers.send_sms")
     def test_delete_sms_requests_valid_data_succeeds(self, _):
         """Test that delete created sms succeed"""
-        get_request = self.request_factory.get(self.create_list_sms_url)
-        force_authenticate(get_request, self.user)
         instance = models.SMSRequest(company=self.user.company, recepients=["+254726406733"], message="Come")
         instance.save()
         id = instance.pk
@@ -72,4 +70,35 @@ class SMSRequestViewsTest(BaseTest):
         response = views.SMSRequestView.as_view()(delete_request)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data["message_requests"][0], ['Invalid pk "100" - object does not exist.'])
-        
+
+    def test_create_brand_name_succeeds(self):
+        """Test that brand name is created with correct data"""
+        request = self.request_factory.post(self.create_list_sms_url, {
+                            "name": "Branded"
+                        })
+            
+        force_authenticate(request, self.user)
+        response = views.CreateBrandName.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_list_brand_names_succeeds(self):
+        """Test list brand name request """
+        request = self.request_factory.get(self.create_list_sms_url)
+        self.user.is_superuser = True
+        self.user.save()
+        instance = models.SMSBranding.objects.create(name="create", company=self.user.company)
+        force_authenticate(request, self.user)
+        response = views.ListBrandNameRequests.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["results"][0]["id"], instance.pk)
+
+    def test_edit_brand_names_succeeds(self):
+        """Test edit brand name request"""
+        request = self.request_factory.patch(self.create_list_sms_url, {"is_approved": True})
+        self.user.is_superuser = True
+        self.user.save()
+        instance = models.SMSBranding.objects.create(name="create", company=self.user.company)
+        force_authenticate(request, self.user)
+        response = views.EditBrandNameRequests.as_view()(request, pk=instance.pk)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["is_approved"], True)

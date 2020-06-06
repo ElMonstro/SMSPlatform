@@ -12,10 +12,17 @@ from core.utils.sms_helpers import (send_sms,
 create_personalized_message, send_mass_unique_sms, count_sms,
 count_personalized_sms, update_sms_count, update_email_count)
 from core.utils.helpers import ( 
-CsvExcelReader, add_country_code, raise_validation_error)
+CsvExcelReader, add_country_code, raise_validation_error, camel_to_snake)
 from core.utils.validators import ( 
 validate_phone_list, validate_excel_csv, validate_csv_row,
 validate_first_name_column, get_intnl_phone)
+
+NETWORK_CODE_TO_PROVIDER_MAPPPER = {
+    "63903": "Airtel Kenya",
+    "63907": "Orange Kenya",
+    "63999": "Equitel Kenya",
+    "63902": "Safaricom"
+}
 
 
 class SMSRequestSerializer(serializers.ModelSerializer):
@@ -44,7 +51,7 @@ class SMSRequestSerializer(serializers.ModelSerializer):
         groups = self.initial_data.get("groups")
         if not recepients and not groups:
             raise ValidationError(
-               {"detail": "A receipient group id or a recepient phone number list must be provided"}
+               {"detail": "A receipient group id or a recepient contact list must be provided"}
             )
         return super().is_valid(raise_exception)
 
@@ -54,7 +61,7 @@ class SMSRequestSerializer(serializers.ModelSerializer):
         company = self.context["request"].user.company
         sms_count = count_sms(validated_data["message"], recepients)
         update_sms_count(sms_count, company)
-        send_sms(validated_data["message"], recepients)
+        send_sms(validated_data["message"], recepients, company.pk)
         validated_data["sms_count"] = sms_count
         return self.save_request(validated_data)
 
@@ -90,6 +97,11 @@ class SMSRequestSerializer(serializers.ModelSerializer):
         extra_kwargs = {'company': {'read_only':True}}
 
 class EmailRequestSerializer(SMSRequestSerializer):
+
+    def get_fields(self):
+        fields = super().get_fields()
+        fields["recepients"] = serializers.ListField(required=False, child=serializers.EmailField())
+        return fields
 
     def create(self, validated_data):
         recepients = self.get_receipients(validated_data)
@@ -314,7 +326,7 @@ class CsvSmsContactUpload(serializers.Serializer):
         recepients = list(set(recepients))
         sms_count = count_sms(message, recepients)
         update_sms_count(sms_count, company)
-        send_sms.delay(message, recepients)
+        send_sms.delay(message, recepients, company.pk)
         sms_request = models.SMSRequest(message=message, recepients=recepients, company=company, sms_count=sms_count)
         sms_request.save()
         data = {
@@ -340,7 +352,7 @@ class CsvSmsContactUpload(serializers.Serializer):
         update_sms_count(sms_count, company)
         sms_request = models.SMSRequest(message=message, recepients=[contact["phone"] for contact in recepients], company=company, sms_count=sms_count)
         sms_request.save()
-        send_mass_unique_sms.delay(message, greeting_text, recepients)
+        send_mass_unique_sms.delay(message, greeting_text, recepients, company.pk)
         data = {
             "recepients": recepients,
             "sms_count": sms_count
@@ -415,3 +427,38 @@ class CsvSmsContactUpload(serializers.Serializer):
                 
             recepients.append(contact)
         return (recepients, skipped_lines)
+
+
+class SMSBrandSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = models.SMSBranding
+        fields = "__all__"
+        extra_kwargs = {'is_active': {'read_only':True},
+            "is_approved": {'read_only':True},
+            "company": {'read_only':True}}
+
+
+class AdminSMSBrandSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = models.SMSBranding
+        fields = "__all__"
+        extra_kwargs = {'is_active': {'read_only':True},
+            "name": {'read_only':True},
+            "company": {'read_only':True}}
+
+
+class DeliveredSMSSerializer(serializers.ModelSerializer):
+
+    def is_valid(self, raise_exception=False):
+        initial_data = self.initial_data
+        initial_data = {camel_to_snake(k):v for (k, v) in initial_data.items()}
+        initial_data["network"] = NETWORK_CODE_TO_PROVIDER_MAPPPER[initial_data["network_code"]]
+        initial_data["sent_sms"] = initial_data.pop("id")
+        self.initial_data = initial_data
+        return super.is_valid(raise_exception=True)
+
+    class Meta:
+        model = models.DeliveredSMS
+        fields = "__all__"

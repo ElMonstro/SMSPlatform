@@ -15,7 +15,7 @@ class TestRecharge(BaseTest):
         data = dummy_data.schedule_data.copy()
         instance = models.SMSGroup(name='group', company=self.user.company)
         instance.save()
-        data["group"] = instance.id
+        data["group"] = instance.pk
         request = self.request_factory.post(self.create_list_sms_url, data)
         force_authenticate(request, self.user)
         response = views.CreateScheduleView.as_view()(request)
@@ -26,7 +26,7 @@ class TestRecharge(BaseTest):
         data = dummy_data.schedule_data.copy()
         instance = models.SMSGroup(name='group', company=self.user.company)
         instance.save()
-        data["group"] = instance.id
+        data["group"] = instance.pk
         request = self.request_factory.post(self.create_list_sms_url, data)
         force_authenticate(request, self.user)
         response = views.CreateScheduleView.as_view()(request)

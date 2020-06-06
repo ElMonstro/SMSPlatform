@@ -52,7 +52,7 @@ class CrontabScehduleSerializer(serializers.ModelSerializer):
             task = "djcelery_email_send_multiple"
             args = json.dumps([subject, message, company.name, receipients])
         else:
-            args = json.dumps([message, receipients])
+            args = json.dumps([message, receipients, company.pk])
             task = "send_sms"
         
         crontab_schedule_instance, _ = CrontabSchedule.objects.get_or_create(**self.validated_data)

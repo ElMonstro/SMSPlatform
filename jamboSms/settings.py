@@ -74,15 +74,7 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated","core.permissions.IsVerified"),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
-    'PAGE_SIZE': 10,
-    'DEFAULT_THROTTLE_CLASSES': [
-        'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle'
-    ],
-    'DEFAULT_THROTTLE_RATES': {
-        'anon': '100/day',
-        'user': '1000/day'
-    }
+    'PAGE_SIZE': 10
 }
 
 AUTH_USER_MODEL = "authentication.User"
@@ -197,6 +189,7 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 COMPANY_EMAIL=os.getenv("COMPANY_EMAIL")
 
+
 FRONTEND_LINK = os.getenv("FRONTEND_LINK")
 
 MPESA_CONSUMER_KEY = os.getenv("MPESA_CONSUMER_KEY")
@@ -204,8 +197,9 @@ MPESA_CONSUMER_SECRET = os.getenv("MPESA_CONSUMER_SECRET")
 MPESA_GENERATE_AUTH_TOKEN_URL = os.getenv("MPESA_GENERATE_AUTH_TOKEN_URL")
 MPESA_BUSINESS_SHORTCODE = os.getenv("MPESA_BUSINESS_SHORTCODE")
 MPESA_LNM_PASSKEY = os.getenv("MPESA_LNM_PASSKEY")
-MPESA_CALLBACK_URL = os.getenv("MPESA_CALLBACK_URL")
+MPESA_CALLBACK_URL = os.getenv("HOST") + "/api/v1/payments/"
 MPESA_LNM_URL = os.getenv("MPESA_LNM_URL")
+COMPANY_BRAND_NAME = os.getenv("COMPANY_BRAND_NAME")
 
 
 CACHES = {

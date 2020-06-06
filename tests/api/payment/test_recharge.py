@@ -15,7 +15,7 @@ class TestRecharge(BaseTest):
         """Test recharge view with correct data will be successful"""
         request = self.request_factory.post(self.create_list_sms_url, dummy_data.recharge_data)
         force_authenticate(request, self.user)
-        response = views.RechargeView.as_view()(request)
+        response = views.MpesaPayView.as_view()(request)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
     
     def test_send_recharge_request_fails_with_incorrect_data(self):
@@ -24,7 +24,7 @@ class TestRecharge(BaseTest):
         data.pop("customer_number")
         request = self.request_factory.post(self.create_list_sms_url, data)
         force_authenticate(request, self.user)
-        response = views.RechargeView.as_view()(request)
+        response = views.MpesaPayView.as_view()(request)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         
 
@@ -33,7 +33,7 @@ class TestMpesaCallBack(BaseTest):
     @patch("api.payment.serializers.send_sms")
     def test_receive_valid_mpesa_callback_request_succeeds(self, _):
         """Test that a valid mpesa callback will pass"""
-        models.RechargeRequest(company=self.user.company, customer_number="254726406930", checkout_request_id="fwer544tgre", response_code=0).save()
+        models.RechargeRequest(company=self.user.company, customer_number="254726406930", transaction_desc="sms_topup", checkout_request_id="fwer544tgre", response_code=0).save()
         models.RechargePlan(name="ting", rate=0.50, price_limit=5).save()
         data = dummy_data.mpesa_callback.copy()
         transaction_date = (datetime.now() + timedelta(hours=3, seconds=60)).replace(tzinfo=None)
@@ -45,7 +45,7 @@ class TestMpesaCallBack(BaseTest):
 
     def test_receive_invalid_mpesa_callback_request_fails(self):
         """Test receive invalid mpesa callback request fails"""
-        models.RechargeRequest(company=self.user.company, customer_number="254726406930", checkout_request_id="fwer544tgre", response_code=0).save()
+        models.RechargeRequest(company=self.user.company, customer_number="254726406930", transaction_desc="sms_topup", checkout_request_id="fwer544tgre", response_code=0).save()
         models.RechargePlan(name="ting", rate=0.50, price_limit=5).save()
         data = dummy_data.mpesa_callback.copy()
         transaction_date = (datetime.now() + timedelta(hours=4, seconds=60)).replace(tzinfo=None)
@@ -86,7 +86,7 @@ class TestGetPaymentsView(BaseTest):
     @patch("api.payment.serializers.send_sms")
     def test_get_payments_request_succeeds(self, _):
             """Test that a valid mpesa callback will pass"""
-            models.RechargeRequest(company=self.user.company, customer_number="254726406930", checkout_request_id="fwer544tgre", response_code=0).save()
+            models.RechargeRequest(company=self.user.company, transaction_desc="sms_topup", customer_number="254726406930", checkout_request_id="fwer544tgre", response_code=0).save()
             models.RechargePlan(name="ting", rate=0.50, price_limit=5).save()
             data = dummy_data.mpesa_callback.copy()
             transaction_date = (datetime.now() + timedelta(hours=3, seconds=60)).replace(tzinfo=None)

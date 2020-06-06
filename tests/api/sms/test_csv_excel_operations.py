@@ -49,8 +49,9 @@ class TestCsvExcel(UploadBasetest):
         response = views.CsvSmsView.as_view()(request)
         self.assertTrue(response.data["recepients"][0])
 
+    @patch("api.sms.serializers.send_mass_unique_sms")
     @patch("api.sms.serializers.send_sms")
-    def test_csv_upload_personalized_sms_succeeds(self, _):
+    def test_csv_upload_personalized_sms_succeeds(self, _, __):
         """Test that sms sent from correct csv data will be successful"""
         file, headers = self.create_upload_file('csv.csv')
         data = {

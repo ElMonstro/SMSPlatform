@@ -1,7 +1,10 @@
+from decimal import Decimal
 import re
-from rest_framework.exceptions import ValidationError
-from .helpers import add_country_code
 
+from rest_framework.exceptions import ValidationError
+from .helpers import add_country_code, raise_validation_error
+
+TRANSACTION_DESCRIPTIONS = ["brand_payment", "sms_topup"]
 
 def validate_passed_file_extension(extension):
     """returns a validator for the passed extension"""
@@ -130,3 +133,27 @@ def validate_mpesa_phone_number(phone):
     if not match:
         return False
     return True
+
+
+def transaction_description_validator(transaction_desc):
+    """
+    Validates if a transaction description is valid
+    """
+    if not transaction_desc in TRANSACTION_DESCRIPTIONS:
+        raise ValidationError(f"Invalid transaction description use: {str(TRANSACTION_DESCRIPTIONS)[1:-1]}")
+
+
+def validate_if_branding_fee_is_set(queryset):
+    """
+    Validates that transaction fee is created
+    """
+    if not queryset:
+        raise_validation_error({"detail": "Branding fee not set, contact JamboSMS admin"})
+
+
+def validate_branding_fee(fee, amount):
+    """
+    Validate amount is same as branding fee
+    """
+    if not fee == Decimal(amount):
+        raise_validation_error({"detail": "The payment is not the same as the branding fee"})

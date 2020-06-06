@@ -21,9 +21,9 @@ class PaymentListView(CustomListAPIView):
     serializer_class = serializers.PaymentSerializer
     queryset = models.Payment.objects.all()
 
-class RechargeView(APIView):
+class MpesaPayView(APIView):
     def post(self, request, *args, **kwargs):
-        serializer = serializers.RechargeSerializer(data=request.data, context={'request': request})
+        serializer = serializers.MpesaPaySerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         serializer.send_request()
         status_code = status.HTTP_201_CREATED
@@ -40,9 +40,21 @@ class CreateListRechargePlanView(generics.ListCreateAPIView):
     queryset = models.RechargePlan.objects.all()
 
 
-class CreateListResellerRechargePlanView(generics.ListAPIView, CustomCreateAPIView):
 
-    permission_classes = [IsAuthenticated, IsReseller]
+class SetBrandingFeeView(generics.ListCreateAPIView):
+    """Set Branding Fee"""
+    permission_classes = [IsAuthenticated, IsSuperUser]
+    serializer_class = serializers.BrandingFeeSerializer
+    queryset = models.BrandingFee.objects.all()
 
-    serializer_class = serializers.ResellerRechargePlanSeializer
-    queryset = models.ResellerRechargePlan.objects.all()
+    def post(self, request, *args, **kwargs):
+        if self.get_queryset():
+            return Response({"detail": "Fee already created, you have to edit the current fee"}, status.HTTP_400_BAD_REQUEST)
+        return super().post(request, *args, **kwargs)
+
+
+class EditBrandingFeeView(generics.RetrieveUpdateAPIView):
+    """Edit Branding Fee """   
+    permission_classes = [IsAuthenticated, IsSuperUser]
+    serializer_class = serializers.BrandingFeeSerializer
+    queryset = models.BrandingFee.objects.all()
