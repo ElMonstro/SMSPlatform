@@ -203,7 +203,7 @@ class EmailGroupMemberSerializer(GroupMemberSerializer):
 
 class SingleSMSGroupSerializer(serializers.ModelSerializer):
 
-    member_list = GroupMemberSerializer(many=True, read_only=True)
+    member_list = GroupMemberSerializer(many=True, read_only=True, source='members')
 
     class Meta:
         model = models.SMSGroup
@@ -212,7 +212,7 @@ class SingleSMSGroupSerializer(serializers.ModelSerializer):
 
 class SingleEmailGroupSerializer(serializers.ModelSerializer):
 
-    member_list = EmailGroupMemberSerializer(many=True, read_only=True)
+    member_list = EmailGroupMemberSerializer(many=True, read_only=True, source='members')
     
     class Meta:
         model = models.EmailGroup
