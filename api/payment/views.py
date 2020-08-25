@@ -32,7 +32,7 @@ class MpesaPayView(APIView):
         }
         return Response(data, status=status_code)
 
-class CreateListRechargePlanView(generics.ListCreateAPIView):
+class CreatRechargePlanView(generics.CreateAPIView):
 
     permission_classes = [IsAuthenticated, IsSuperUser]
     
@@ -40,6 +40,20 @@ class CreateListRechargePlanView(generics.ListCreateAPIView):
     queryset = models.RechargePlan.objects.all()
 
 
+class ListRechargePlanView(generics.ListCreateAPIView):
+
+    permission_classes = [IsAuthenticated]
+    
+    serializer_class = serializers.RechargePlanSerializer
+    queryset = models.RechargePlan.objects.all()
+
+
+class DeleteUpdateRechargePlanView(generics.RetrieveUpdateDestroyAPIView):
+
+    permission_classes = [IsAuthenticated, IsSuperUser]
+    
+    serializer_class = serializers.RechargePlanSerializer
+    queryset = models.RechargePlan.objects.all()
 
 class SetBrandingFeeView(generics.ListCreateAPIView):
     """Set Branding Fee"""
