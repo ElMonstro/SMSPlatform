@@ -9,7 +9,8 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 
 from . import serializers
-from .models import AddStaffModel, Company, ResetPasswordToken, ConsumerKey, APIKeyActivity
+from .models import (AddStaffModel, Company, ResetPasswordToken,
+ ConsumerKey, APIKeyActivity, User)
 from core.permissions import (IsAdmin, IsDirector, IsCompanyOwned,
  IsSuperUser, IsReseller, IsVerified)
 from core.views import CustomCreateAPIView, CustomDestroyAPIView, CustomListAPIView
@@ -167,3 +168,14 @@ class GetSingleKeyActivityKeyView(generics.ListAPIView):
         page = self.paginate_queryset(queryset)
         serializer = self.get_serializer(page, many=True)
         return self.get_paginated_response(serializer.data)
+
+
+class ProfileView(APIView):
+    """Get profile"""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        instance = request.user
+        serializer = serializers.ProfileSerializer(instance)
+        return Response(serializer.data)
+

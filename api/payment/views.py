@@ -16,10 +16,20 @@ class MpesaCallbackView(generics.CreateAPIView):
     queryset = models.Payment.objects.all()
     permission_classes = []
 
-class PaymentListView(CustomListAPIView):
+class PaymentListView(generics.CreateAPIView, CustomListAPIView):
     """Enables Mpesa payment for sms recharge"""
     serializer_class = serializers.PaymentSerializer
     queryset = models.Payment.objects.all()
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        message = serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response({ 'message': message }, status=status.HTTP_201_CREATED, headers=headers)
+
+
+
 
 class MpesaPayView(APIView):
     def post(self, request, *args, **kwargs):

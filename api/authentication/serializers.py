@@ -249,3 +249,10 @@ class KeyActivitySerializer(serializers.ModelSerializer):
     class Meta:
         model = APIKeyActivity
         fields = "__all__"
+
+class ProfileSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ['full_name', 'phone', 'email', 'company']
+        
