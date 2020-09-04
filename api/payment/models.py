@@ -3,17 +3,20 @@ from django.db import models
 from core.models import AbstractBaseModel, ActiveObjectsQuerySet
 
 # Create your models here.
+PAYMENT_ACTIONS = (
+    ("brand_payment", "brand_payment"),
+    ("sms_topup", "sms_topup"),
+    ("email_topup", "email_topup")
+)
 class Payment(AbstractBaseModel):
     company = models.ForeignKey("authentication.Company", on_delete=models.SET_NULL, null=True)
-    result_code = models.IntegerField()
-    result_desc = models.CharField(max_length=100)
-    amount = models.IntegerField(null=True)
-    mpesa_receipt_number = models.CharField(max_length=20, null=True, unique=True)
-    transaction_date = models.DateTimeField(null=True)
-    phone_number = models.CharField(max_length=20, null=True)
+    user = models.ForeignKey("authentication.User", on_delete=models.SET_NULL, null=True)
+    amount = models.DecimalField(decimal_places=2, max_digits=9)
+    payment_action = models.CharField(max_length=20, choices=PAYMENT_ACTIONS, default="sms_topup")
+    ref_no = models.CharField(max_length=60 )
 
     def __str__(self):
-        return self.mpesa_receipt_number
+        return f'Amount: {self.amount}'
 
 
 class RechargePlan(models.Model):
@@ -23,18 +26,6 @@ class RechargePlan(models.Model):
 
     def __str__(self):
         return str(self.price_limit)
-
-
-class RechargeRequest(AbstractBaseModel):
-    company = models.ForeignKey("authentication.Company", on_delete=models.SET_NULL, null=True)
-    customer_number = models.CharField(max_length=20)
-    checkout_request_id = models.CharField(max_length=50)
-    response_code = models.CharField(max_length=20)
-    completed  = models.BooleanField(default=False)
-    transaction_desc = models.CharField(max_length=50)
-
-    def __str__(self):
-        return self.checkout_request_id
 
 
 class ResellerRechargePlan(models.Model):
@@ -47,7 +38,6 @@ class ResellerRechargePlan(models.Model):
         return str(self.price_limit)
     class Meta:
         unique_together = ('company', 'price_limit')
-
 
 class BrandingFee(models.Model):
     fee = models.DecimalField(decimal_places=2, max_digits=10)

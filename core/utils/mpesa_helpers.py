@@ -11,7 +11,6 @@ from django.core.cache import cache
 from django_celery_beat.models import CrontabSchedule, PeriodicTask, IntervalSchedule
 
 from jamboSms.celery import app
-from api.payment.models import RechargeRequest
 from .helpers import camel_to_snake, raise_validation_error
 
 
@@ -90,7 +89,6 @@ def send_LNM_request(customer_number=None, amount=None, transaction_desc="test",
     payload["response_code"] = result["ResponseCode"]
     payload["customer_number"] = customer_number
     payload["transaction_desc"] = transaction_desc
-    RechargeRequest(**payload).save()
     return result
     
 
