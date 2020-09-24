@@ -97,6 +97,7 @@ class GroupView(generics.ListAPIView, ModelSerializerMappingMixin, CustomCreateA
 
     queryset = models.SMSGroup.objects.all()
     serializer_class = serializers.SMSGroupSerializer
+    pagination_class = None
 
     def get_serializer_class(self):
         medium = self.request.query_params.get("medium", None)

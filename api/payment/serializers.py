@@ -6,7 +6,9 @@ from core.utils.validators import (validate_mpesa_phone_number, transaction_desc
 from core.utils.mpesa_helpers import send_LNM_request, validate_mpesa_callback_request
 from core.utils.helpers import camel_to_snake, raise_validation_error
 from core.utils.sms_helpers import calculate_recharge_sms, update_sms_count, send_sms, company_is_branded
+from core.utils.encryption_helpers import decrypt_string
 from . import models
+
 
 
 class MpesaPaySerializer(serializers.Serializer):
@@ -43,7 +45,9 @@ class PaymentSerializer(serializers.ModelSerializer):
         if not payment_action:
             payment_action = 'sms_topup'
 
-        amount = self.validated_data["amount"]
+        encrypted_amount = self.validated_data["amount"]
+        
+        amount = decrypt_string(encrypted_amount)
         message = self.get_payment_action(payment_action)(amount)
         return message
 

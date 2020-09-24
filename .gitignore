@@ -8,3 +8,5 @@ dump.rdb
 celerybeat-schedule
 celerybeat.pid
 htmlcov
+privatekey.pem
+public_key.pem

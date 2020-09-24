@@ -22,5 +22,6 @@ urlpatterns = [
     path("consumer-keys/<int:pk>/", views.DeleteConsumerKeyView.as_view(), name="delete_consumer_key"),
     path("consumer-keys/activity/", views.GetKeyActivityKeyView.as_view(), name="get_key_activity"),
     path("consumer-keys/<int:pk>/activity/", views.GetSingleKeyActivityKeyView.as_view(), name="get_single_key_activity"),
-    path("profile/", views.ProfileView.as_view(), name="profile")
+    path("profile/", views.ProfileView.as_view(), name="profile"),
+    path("public-key/", views.GetPublicKey.as_view(), name="public-key")
 ]

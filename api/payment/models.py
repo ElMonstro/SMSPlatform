@@ -13,7 +13,7 @@ class Payment(AbstractBaseModel):
     user = models.ForeignKey("authentication.User", on_delete=models.SET_NULL, null=True)
     amount = models.DecimalField(decimal_places=2, max_digits=9)
     payment_action = models.CharField(max_length=20, choices=PAYMENT_ACTIONS, default="sms_topup")
-    ref_no = models.CharField(max_length=60 )
+    ref_no = models.OneToOneField("PaymentKey", on_delete=models.SET_NULL, to_field="ref_no", db_column="ref_no", null=True)
 
     def __str__(self):
         return f'Amount: {self.amount}'
@@ -42,3 +42,7 @@ class ResellerRechargePlan(models.Model):
 class BrandingFee(models.Model):
     fee = models.DecimalField(decimal_places=2, max_digits=10)
     
+
+class PaymentKey(AbstractBaseModel):
+    ref_no = models.CharField(max_length=60, unique=True)
+    is_active = models.BooleanField(default=True)

@@ -93,7 +93,7 @@ class SMSRequestSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.SMSRequest
-        fields = ["message", "groups", "recepients", "id", "sms_count", "is_deleted"]
+        fields = ["message", "groups", "recepients", "id", "sms_count", "is_deleted", "created_at"]
         extra_kwargs = {'company': {'read_only':True}}
 
 class EmailRequestSerializer(SMSRequestSerializer):

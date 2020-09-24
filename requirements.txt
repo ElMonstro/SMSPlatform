@@ -9,6 +9,7 @@ dj-database-url==0.5.0
 python-dotenv==0.10.5
 django-heroku==0.3.1
 psycopg2==2.8.4
+pycrypto==2.6.1
 coverage==5.0.3
 faker==4.0.0
 factory-boy==2.12.0
