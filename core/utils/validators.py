@@ -74,7 +74,7 @@ def validate_phone_list(phone_list):
         )
     for index, number in enumerate(phone_list):
         if not validate_phone_number(number):
-            raise ValidationError(f"Invalid phone number at index {index}")
+            raise ValidationError(f"Invalid phone number at position {index + 1}")
 
 
 def validate_model_reference_is_own(user, model, instance):

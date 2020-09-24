@@ -56,6 +56,7 @@ def get_sms_branding(company_id):
 def log_sent_message(recipient, company):
     recipient = {camel_to_snake(k):v for (k,v) in recipient.items()}
     recipient.pop("cost")
+    recipient.pop("number")
     SentSMS.objects.create(company=company, **recipient)
 
 @app.task(name="send_sms")

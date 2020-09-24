@@ -179,3 +179,14 @@ class ProfileView(APIView):
         serializer = serializers.ProfileSerializer(instance)
         return Response(serializer.data)
 
+
+class GetPublicKey(APIView):
+    """Fetch public key"""
+    
+    def get(self, request, *args, **kwargs): 
+        public_key = None
+        with open("public_key.pem", "r") as file:
+            public_key = file.read()
+
+        return Response({"public_key": public_key})
+

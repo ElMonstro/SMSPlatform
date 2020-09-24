@@ -52,7 +52,7 @@ class CreatRechargePlanView(generics.CreateAPIView):
 
 class ListRechargePlanView(generics.ListCreateAPIView):
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = []
     
     serializer_class = serializers.RechargePlanSerializer
     queryset = models.RechargePlan.objects.all()

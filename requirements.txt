@@ -1,5 +1,5 @@
 celery==4.4.2
-djangorestframework-simplejwt==4.4.0
+djangorestframework-simplejwt==4.7.2
 djangorestframework==3.11.0
 django-cors-headers==3.2.1
 django-celery-email==3.0.0
@@ -9,6 +9,7 @@ dj-database-url==0.5.0
 python-dotenv==0.10.5
 django-heroku==0.3.1
 psycopg2==2.8.4
+pycrypto==2.6.1
 coverage==5.0.3
 faker==4.0.0
 factory-boy==2.12.0
